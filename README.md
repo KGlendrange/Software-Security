@@ -69,6 +69,17 @@ repository after the deadline has passed. Include the commit hash
 of the final commit (which you can find `git log`, for instance) in
 your submission on MittUiB.
 
+Remember to make your fork accessible to the TAs and lecturer. You can do
+this from GitLab's menu, "Settings" → "Members".
+Add the following people as developers:
+
+ - Alba Gullerud,
+ - Kenneth Fossen,
+ - Jonas Møller,
+ - Erlend Nærbø ,
+ - Benjamin Chetioui, and
+ - Håkon Gylterud
+
 ## Updates
 
 Most likely the source code of the project will be updated by Håkon

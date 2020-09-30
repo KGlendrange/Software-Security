@@ -6,17 +6,21 @@ import java.time.Instant;
  * about a user.
  **/
 public final class User {
-    public final String name;
     public final Instant joined;
 
-    public User(String name,
-                Instant joined) {
-        this.name = name;
-        this.joined = joined;
+    public final String name;
+    public final String password;
+    
+
+    public User(String name,String password,Instant joined) {
+        this.joined = joined; 
+
+        this.password = new Password(password).getPassword();
+        this.name = new UserName(name).getUserName();
     }
     
-    public static User create(String name) {
-        return new User(name, Instant.now());
+    public static User create(String name, String password) {
+        return new User(name, password, Instant.now());
     }
 }
 

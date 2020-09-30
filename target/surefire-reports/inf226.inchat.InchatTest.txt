@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: inf226.inchat.InchatTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.53 s - in inf226.inchat.InchatTest

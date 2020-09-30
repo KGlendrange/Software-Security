@@ -62,8 +62,9 @@ public class InChat {
      */
     public Maybe<Stored<Session>> register(String username, String password) {
         try {
+            //User now stores the SCrypt hash of their password
             final Stored<User> user =
-                userStore.save(User.create(username));
+                userStore.save(User.create(username, password));
             final Stored<Account> account =
                 accountStore.save(Account.create(user, password));
             final Stored<Session> session =

@@ -22,7 +22,7 @@ public final class UserStorage
       throws SQLException {
         this.connection = connection;
         connection.createStatement()
-                .executeUpdate("CREATE TABLE IF NOT EXISTS User (id TEXT PRIMARY KEY, version TEXT, name TEXT, joined TEXT)");
+                .executeUpdate("CREATE TABLE IF NOT EXISTS User (id TEXT PRIMARY KEY, version TEXT, name TEXT, password TEXT, joined TEXT)");
     }
     
     @Override
@@ -32,6 +32,7 @@ public final class UserStorage
         String sql =  "INSERT INTO User VALUES('" + stored.identity + "','"
                                                   + stored.version  + "','"
                                                   + user.name  + "','"
+                                                  + user.password + "','"
                                                   + user.joined.toString() + "')";
         connection.createStatement().executeUpdate(sql);
         return stored;
@@ -50,6 +51,7 @@ public final class UserStorage
             " (version,name,joined) =('" 
                             + updated.version  + "','"
                             + new_user.name  + "','"
+                            + new_user.password + "','"
                             + new_user.joined.toString()
                             + "') WHERE id='"+ updated.identity + "'";
             connection.createStatement().executeUpdate(sql);
@@ -76,7 +78,7 @@ public final class UserStorage
     public Stored<User> get(UUID id)
       throws DeletedException,
              SQLException {
-        final String sql = "SELECT version,name,joined FROM User WHERE id = '" + id.toString() + "'";
+        final String sql = "SELECT version,name,password,joined FROM User WHERE id = '" + id.toString() + "'";
         final Statement statement = connection.createStatement();
         final ResultSet rs = statement.executeQuery(sql);
 
@@ -84,9 +86,14 @@ public final class UserStorage
             final UUID version = 
                 UUID.fromString(rs.getString("version"));
             final String name = rs.getString("name");
+
+            //Password
+            final String password = rs.getString("password");
+
             final Instant joined = Instant.parse(rs.getString("joined"));
+        
             return (new Stored<User>
-                        (new User(name,joined),id,version));
+                        (new User(name,password,joined),id,version));
         } else {
             throw new DeletedException();
         }

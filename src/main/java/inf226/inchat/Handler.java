@@ -29,6 +29,7 @@ import inf226.storage.*;
 import inf226.inchat.*;
 import inf226.util.*;
 
+
 /**
  * The Hanlder class handles all HTTP and HTML components.
  * Functions called display⋯ and print⋯ output HTML.

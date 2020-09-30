@@ -5,6 +5,9 @@ import inf226.util.Pair;
 
 import inf226.storage.*;
 
+import com.lambdaworks.crypto.SCryptUtil;
+
+
 /**
  * The Account class holds all information private to
  * a specific user.
@@ -17,6 +20,7 @@ public final class Account {
                    List<Pair<String,Stored<Channel>>> channels) {
         this.user = user;
         this.channels = channels;
+
     }
     
     /**
@@ -39,6 +43,9 @@ public final class Account {
 
 
     public boolean checkPassword(String password) {
+        
+        //SCryptUtil.check(password, hashed);
+        
         return true;
     }
     

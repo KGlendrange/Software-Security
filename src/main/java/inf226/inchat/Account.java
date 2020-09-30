@@ -43,10 +43,8 @@ public final class Account {
 
 
     public boolean checkPassword(String password) {
-        
-        //SCryptUtil.check(password, hashed);
-        
-        return true;
+        //SCrypt on the given password vs the hashed password
+        return SCryptUtil.check(password, this.user.value.password);
     }
     
     

@@ -138,7 +138,10 @@ public class Handler extends AbstractHandler
         final Stored<Account> account = session.value.account;
         // User is now logged in with a valid sesion.
         // We set the session cookie to keep the user logged in:
-        response.addCookie(new Cookie("session",session.identity.toString()));
+
+        Cookie sessCookie = new Cookie("session",session.identity.toString());
+        sessCookie.setSecure(true);
+        response.addCookie(sessCookie);
         
         final PrintWriter out = response.getWriter();
         // Handle a logged in request.

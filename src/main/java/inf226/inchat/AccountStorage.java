@@ -12,6 +12,8 @@ import inf226.storage.*;
 import inf226.util.immutable.List;
 import inf226.util.*;
 
+import java.sql.PreparedStatement;
+
 public final class AccountStorage
     implements Storage<Account,SQLException> {
     
@@ -38,10 +40,15 @@ public final class AccountStorage
       throws SQLException {
         
         final Stored<Account> stored = new Stored<Account>(account);
-        String sql =  "INSERT INTO Account VALUES('" + stored.identity + "','"
-                                                  + stored.version  + "','"
-                                                  + account.user.identity  + "')";
-        connection.createStatement().executeUpdate(sql);
+
+        final String myQuery = "INSERT INTO Account VALUES (?,?,?)";
+        
+        PreparedStatement myStmt = connection.prepareStatement(myQuery);
+        myStmt.setString(1,stored.identity.toString());
+        myStmt.setString(2,stored.version.toString());
+        myStmt.setString(3,account.user.identity.toString());
+
+        myStmt.executeUpdate();
         
         // Write the list of channels
         final Maybe.Builder<SQLException> exception = Maybe.builder();
@@ -49,12 +56,21 @@ public final class AccountStorage
         account.channels.forEach(element -> {
             String alias = element.first;
             Stored<Channel> channel = element.second;
-            final String msql
+            /* final String msql
               = "INSERT INTO AccountChannel VALUES('" + stored.identity + "','"
                                                       + channel.identity + "','"
                                                       + alias + "','"
-                                                      + ordinal.get().toString() + "')";
-            try { connection.createStatement().executeUpdate(msql); }
+                                                      + ordinal.get().toString() + "')"; */
+            final String msql = "INSERT INTO AccountChannel VALUES (?,?,?,?)";
+
+            try { 
+                PreparedStatement mStmt = connection.prepareStatement(msql);
+                mStmt.setString(1,stored.identity.toString());
+                mStmt.setString(2,channel.identity.toString());
+                mStmt.setString(3,alias);
+                mStmt.setString(4,ordinal.get().toString());
+                mStmt.executeUpdate(); 
+            }
             catch (SQLException e) { exception.accept(e) ; }
             ordinal.accept(ordinal.get() + 1);
         });
@@ -72,12 +88,20 @@ public final class AccountStorage
     final Stored<Account> current = get(account.identity);
     final Stored<Account> updated = current.newVersion(new_account);
     if(current.version.equals(account.version)) {
-        String sql = "UPDATE Account SET" +
+        /* String sql = "UPDATE Account SET" +
             " (version,user) =('" 
                             + updated.version  + "','"
                             + new_account.user.identity
-                            + "') WHERE id='"+ updated.identity + "'";
-        connection.createStatement().executeUpdate(sql);
+                            + "') WHERE id='"+ updated.identity + "'"; */
+
+        final String sql = "UPDATE Account SET (version,user) = (?,?) WHERE id = ?";
+        
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,updated.version.toString());
+        stmt.setString(2,new_account.user.identity.toString());
+        stmt.setString(3,updated.identity.toString());
+
+        stmt.executeUpdate();
         
         
         // Rewrite the list of channels
@@ -88,12 +112,24 @@ public final class AccountStorage
         new_account.channels.forEach(element -> {
             String alias = element.first;
             Stored<Channel> channel = element.second;
-            final String msql
+            /* final String msql
                 = "INSERT INTO AccountChannel VALUES('" + account.identity + "','"
                                                         + channel.identity + "','"
                                                         + alias + "','"
-                                                        + ordinal.get().toString() + "')";
-            try { connection.createStatement().executeUpdate(msql); }
+                                                        + ordinal.get().toString() + "')"; */
+            
+            final String msql = "INSERT INTO AccountChannel VALUES (?,?,?,?)";
+
+            
+            
+            try { 
+                PreparedStatement mStmt = connection.prepareStatement(msql);
+                mStmt.setString(1,account.identity.toString());
+                mStmt.setString(2,channel.identity.toString());
+                mStmt.setString(3,alias);
+                mStmt.setString(4,ordinal.get().toString());
+                mStmt.executeUpdate(); 
+            }
             catch (SQLException e) { exception.accept(e) ; }
             ordinal.accept(ordinal.get() + 1);
         });
@@ -112,8 +148,14 @@ public final class AccountStorage
               SQLException {
         final Stored<Account> current = get(account.identity);
         if(current.version.equals(account.version)) {
-        String sql =  "DELETE FROM Account WHERE id ='" + account.identity + "'";
-        connection.createStatement().executeUpdate(sql);
+
+        //String sql =  "DELETE FROM Account WHERE id ='" + account.identity + "'";
+        String sql = "DELETE FROM Account WHERE id = ?";
+        
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,account.identity.toString());
+        stmt.executeUpdate();
+
         } else {
         throw new UpdatedException(current);
         }
@@ -123,14 +165,25 @@ public final class AccountStorage
       throws DeletedException,
              SQLException {
 
-        final String accountsql = "SELECT version,user FROM Account WHERE id = '" + id.toString() + "'";
-        final String channelsql = "SELECT channel,alias,ordinal FROM AccountChannel WHERE account = '" + id.toString() + "' ORDER BY ordinal DESC";
+        //final String accountsql = "SELECT version,user FROM Account WHERE id = '" + id.toString() + "'";
+        final String accountsql = "SELECT version, user FROM Account WHERE id = ?";
+         
+        //final String channelsql = "SELECT channel,alias,ordinal FROM AccountChannel WHERE account = '" + id.toString() + "' ORDER BY ordinal DESC";
+        final String channelsql = "SELECT channel,alias,ordinal FROM AccountChannel WHERE account = ? ORDER BY ordinal DESC";
 
-        final Statement accountStatement = connection.createStatement();
-        final Statement channelStatement = connection.createStatement();
+        //final Statement accountStatement = connection.createStatement();
+        PreparedStatement accountStatement = connection.prepareStatement(accountsql);
+        accountStatement.setString(1,id.toString());
 
-        final ResultSet accountResult = accountStatement.executeQuery(accountsql);
-        final ResultSet channelResult = channelStatement.executeQuery(channelsql);
+        //final Statement channelStatement = connection.createStatement();
+        PreparedStatement channelStatement = connection.prepareStatement(channelsql);
+        accountStatement.setString(1,id.toString());
+
+        //final ResultSet accountResult = accountStatement.executeQuery(accountsql);
+        final ResultSet accountResult = accountStatement.executeQuery();
+        //final ResultSet channelResult = channelStatement.executeQuery(channelsql);
+        final ResultSet channelResult = channelStatement.executeQuery();
+
 
         if(accountResult.next()) {
             final UUID version = UUID.fromString(accountResult.getString("version"));
@@ -156,12 +209,15 @@ public final class AccountStorage
     public Stored<Account> lookup(String username)
       throws DeletedException,
              SQLException {
-        final String sql = "SELECT Account.id from Account INNER JOIN User ON user=User.id where User.name='" + username + "'";
+        //final String sql = "SELECT Account.id from Account INNER JOIN User ON user=User.id where User.name='" + username + "'";
+        final String sql = "SELECT Account.id from Account INNER JOIN User ON user=User.id where User.name = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
+        statement.setString(1,username);
+        System.err.println(sql+username);
+        //final Statement statement = connection.createStatement();
         
-        System.err.println(sql);
-        final Statement statement = connection.createStatement();
         
-        final ResultSet rs = statement.executeQuery(sql);
+        final ResultSet rs = statement.executeQuery();
         if(rs.next()) {
             final UUID identity = 
                     UUID.fromString(rs.getString("id"));

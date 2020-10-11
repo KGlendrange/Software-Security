@@ -48,9 +48,16 @@ public class InChat {
         // Here you can implement login.
         try {
             final Stored<Account> account = accountStore.lookup(username);
-            final Stored<Session> session =
+            System.err.println("trying to log in on account: "+ account.value);
+            //Checking password
+            
+            if(account.value.checkPassword(password)){
+                final Stored<Session> session =
                 sessionStore.save(new Session(account, Instant.now().plusSeconds(60*60*24)));
-            return Maybe.just(session); 
+                return Maybe.just(session); 
+            }else{
+                System.err.println("Password was not correct");
+            }
         } catch (SQLException e) {
         } catch (DeletedException e) {
         }
@@ -63,8 +70,14 @@ public class InChat {
     public Maybe<Stored<Session>> register(String username, String password) {
         try {
             //User now stores the SCrypt hash of their password
+            System.err.println("Trying to register user: \"" + username
+            + "\" with password \"" + password + "\" inside inchat register()");
+            final User notStoredUser = User.create(username,password);
+            System.err.println("Made the user : "+ notStoredUser.toString());
             final Stored<User> user =
-                userStore.save(User.create(username, password));
+                userStore.save(notStoredUser);
+            System.err.println("Did register a user!!: \"" + username
+                + "\" with password \"" + password + "\" inside inchat register()");
             final Stored<Account> account =
                 accountStore.save(Account.create(user, password));
             final Stored<Session> session =
@@ -147,6 +160,8 @@ public class InChat {
     public Maybe<Stored<Channel>> postMessage(Stored<Account> account,
                                               Stored<Channel> channel,
                                               String message) {
+        
+        System.err.println("Trying to post a message in inChat postMessage()");
         try {
             Stored<Channel.Event> event
                 = channelStore.eventStore.save(

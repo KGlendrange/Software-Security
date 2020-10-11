@@ -1,6 +1,7 @@
 package inf226.inchat;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -36,23 +37,53 @@ public final class EventStorage
         
         final Stored<Channel.Event> stored = new Stored<Channel.Event>(event);
         
-        String sql =  "INSERT INTO Event VALUES('" + stored.identity + "','"
+        /* String sql =  "INSERT INTO Event VALUES('" + stored.identity + "','"
                                                   + stored.version  + "','"
                                                   + event.type.code + "','"
-                                                  + event.time  + "')";
-        connection.createStatement().executeUpdate(sql);
-        switch (event.type) {
-            case message:
-                sql = "INSERT INTO Message VALUES('" + stored.identity + "','"
-                                                     + event.sender + "','"
-                                                     + event.message +"')";
-                break;
-            case join:
-                sql = "INSERT INTO Joined VALUES('" + stored.identity + "','"
-                                                  + event.sender +"')";
-                break;
+                                                  + event.time  + "')"; */
+        String sql = "INSERT INTO Event VALUES (?,?,?,?)";
+        try{
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            stmt.setString(1,stored.identity.toString());
+            stmt.setString(2,stored.version.toString());
+            stmt.setInt(3,event.type.code);
+            stmt.setString(4,event.time.toString());
+
+            /* connection.createStatement().executeUpdate(sql); */
+            stmt.executeUpdate();
+        }catch(SQLException e){
+            System.err.println("error: "+e);
         }
-        connection.createStatement().executeUpdate(sql);
+        try{
+            PreparedStatement switchStmt = null;
+            switch (event.type) {
+                case message:
+                    /* sql = "INSERT INTO Message VALUES('" + stored.identity + "','"
+                                                        + event.sender + "','"
+                                                        + event.message +"')"; */
+                    sql = "INSERT INTO Message VALUES (?,?,?)";
+                    switchStmt = connection.prepareStatement(sql);
+                    switchStmt.setString(1,stored.identity.toString());
+                    switchStmt.setString(2,event.sender);
+                    switchStmt.setString(3,event.message);
+                    break;
+                case join:
+                    /* sql = "INSERT INTO Joined VALUES('" + stored.identity + "','"
+                                                    + event.sender +"')"; */
+                    sql = "INSERT INTO Joined VALUES (?,?)";
+                    switchStmt = connection.prepareStatement(sql);
+                    switchStmt.setString(1,stored.identity.toString());
+                    switchStmt.setString(2,event.sender);
+                    break;
+            }
+            switchStmt.executeUpdate();
+            System.err.println("test91");
+        }catch(SQLException e){
+            System.err.println("error: "+e);
+        }
+        
+
+        /* connection.createStatement().executeUpdate(sql); */
         return stored;
     }
     
@@ -65,23 +96,41 @@ public final class EventStorage
     final Stored<Channel.Event> current = get(event.identity);
     final Stored<Channel.Event> updated = current.newVersion(new_event);
     if(current.version.equals(event.version)) {
-        String sql = "UPDATE Event SET" +
+        /* String sql = "UPDATE Event SET" +
             " (version,time,type) =('" 
                             + updated.version  + "','"
                             + new_event.time  + "','"
                             + new_event.type.code
-                            + "') WHERE id='"+ updated.identity + "'";
-        connection.createStatement().executeUpdate(sql);
+                            + "') WHERE id='"+ updated.identity + "'"; */
+        String sql = "UPDATE Event SET (version,time,type) = (?,?,?) WHERE id= ?";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,updated.version.toString());
+        stmt.setString(2,new_event.time.toString());
+        stmt.setInt(3,new_event.type.code);
+        stmt.setString(4,updated.identity.toString());
+        stmt.executeUpdate();
+        /* connection.createStatement().executeUpdate(sql); */
+        PreparedStatement switchStmt = null;
         switch (new_event.type) {
             case message:
-                sql = "UPDATE Message SET (sender,content)=('" + new_event.sender + "','"
-                                                     + new_event.message +"') WHERE id='"+ updated.identity + "'";
+                /* sql = "UPDATE Message SET (sender,content)=('" + new_event.sender + "','"
+                                                     + new_event.message +"') WHERE id='"+ updated.identity + "'"; */
+                sql = "UPDATE Message SET (sender,content)=(?,?) WHERE id= ?";
+                switchStmt = connection.prepareStatement(sql);
+                switchStmt.setString(1,new_event.sender);
+                switchStmt.setString(2,new_event.message);
+                switchStmt.setString(3,updated.identity.toString());
                 break;
             case join:
-                sql = "UPDATE Joined SET (sender)=('" + new_event.sender +"') WHERE id='"+ updated.identity + "'";
+                /* sql = "UPDATE Joined SET (sender)=('" + new_event.sender +"') WHERE id='"+ updated.identity + "'"; */
+                sql = "UPDATE Joined SET (sender)=(?) WHERE id= ?";
+                switchStmt = connection.prepareStatement(sql);
+                switchStmt.setString(1,new_event.sender);
+                switchStmt.setString(2,updated.identity.toString());
                 break;
         }
-        connection.createStatement().executeUpdate(sql);
+        /* connection.createStatement().executeUpdate(sql); */
+        switchStmt.executeUpdate();
     } else {
         throw new UpdatedException(current);
     }
@@ -95,8 +144,12 @@ public final class EventStorage
               SQLException {
         final Stored<Channel.Event> current = get(event.identity);
         if(current.version.equals(event.version)) {
-        String sql =  "DELETE FROM Event WHERE id ='" + event.identity + "'";
-        connection.createStatement().executeUpdate(sql);
+        /* String sql =  "DELETE FROM Event WHERE id ='" + event.identity + "'"; */
+        String sql = "DELETE FROM Event WHERE id= ?";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,event.identity.toString());
+        /* connection.createStatement().executeUpdate(sql); */
+        stmt.executeUpdate();
         } else {
         throw new UpdatedException(current);
         }
@@ -105,9 +158,14 @@ public final class EventStorage
     public Stored<Channel.Event> get(UUID id)
       throws DeletedException,
              SQLException {
-        final String sql = "SELECT version,time,type FROM Event WHERE id = '" + id.toString() + "'";
-        final Statement statement = connection.createStatement();
-        final ResultSet rs = statement.executeQuery(sql);
+        /* final String sql = "SELECT version,time,type FROM Event WHERE id = '" + id.toString() + "'"; */
+        final String sql = "SELECT  version,time,type FROM Event WHERE id = ?";
+
+        /* final Statement statement = connection.createStatement(); */
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,id.toString());
+        /* final ResultSet rs = statement.executeQuery(sql); */
+        final ResultSet rs = stmt.executeQuery();
 
         if(rs.next()) {
             final UUID version = UUID.fromString(rs.getString("version"));
@@ -116,19 +174,29 @@ public final class EventStorage
             final Instant time = 
                 Instant.parse(rs.getString("time"));
             
-            final Statement mstatement = connection.createStatement();
+            /* final Statement mstatement = connection.createStatement(); */
+            PreparedStatement mStatement = null;
             switch(type) {
                 case message:
-                    final String msql = "SELECT sender,content FROM Message WHERE id = '" + id.toString() + "'";
-                    final ResultSet mrs = mstatement.executeQuery(msql);
+                    /* final String msql = "SELECT sender,content FROM Message WHERE id = '" + id.toString() + "'"; */
+                    final String msql = "SELECT sender,content FROM Message WHERE id = ?";
+                    mStatement = connection.prepareStatement(msql);
+                    mStatement.setString(1,id.toString());
+                    
+                    /* final ResultSet mrs = mstatement.executeQuery(msql); */
+                    final ResultSet mrs = mStatement.executeQuery();
                     mrs.next();
                     return new Stored<Channel.Event>(
                             Channel.Event.createMessageEvent(time,mrs.getString("sender"),mrs.getString("content")),
                             id,
                             version);
                 case join:
-                    final String asql = "SELECT sender FROM Joined WHERE id = '" + id.toString() + "'";
-                    final ResultSet ars = mstatement.executeQuery(asql);
+                    /* final String asql = "SELECT sender FROM Joined WHERE id = '" + id.toString() + "'"; */
+                    final String asql = "SELECT sender FROM Joined WHERE id = ?";
+                    mStatement = connection.prepareStatement(asql);
+                    mStatement.setString(1,id.toString());
+                    /* final ResultSet ars = mstatement.executeQuery(asql); */
+                    final ResultSet ars = mStatement.executeQuery();
                     ars.next();
                     return new Stored<Channel.Event>(
                             Channel.Event.createJoinEvent(time,ars.getString("sender")),

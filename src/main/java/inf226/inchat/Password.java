@@ -13,6 +13,8 @@ public final class Password {
     public Password(String password) {
         //Scrypt on the password, with N = 16384, r = 8, p = 1
         this.hashed = SCryptUtil.scrypt(password,16384,8,1);
+        System.err.println("hashing a new password "+this.hashed);
+
     }
     
     public static Password create(String password) {

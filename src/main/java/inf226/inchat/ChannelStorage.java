@@ -1,6 +1,7 @@
 package inf226.inchat;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -40,19 +41,37 @@ public final class ChannelStorage
       throws SQLException {
         
         final Stored<Channel> stored = new Stored<Channel>(channel);
-        String sql =  "INSERT INTO Channel VALUES('" + stored.identity + "','"
+        /* String sql =  "INSERT INTO Channel VALUES('" + stored.identity + "','"
                                                   + stored.version  + "','"
-                                                  + channel.name  + "')";
-        connection.createStatement().executeUpdate(sql);
+                                                  + channel.name  + "')"; */
+        String sql = "INSERT INTO Channel VALUES (?,?,?)";
+        
+        /* connection.createStatement().executeUpdate(sql); */
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,stored.identity.toString());
+        stmt.setString(2,stored.version.toString());
+        stmt.setString(3,channel.name);
+        stmt.executeUpdate();
+
         
         // Write the list of events
         final Maybe.Builder<SQLException> exception = Maybe.builder();
         final Mutable<Integer> ordinal = new Mutable<Integer>(0);
         channel.events.forEach(event -> {
-            final String msql = "INSERT INTO ChannelEvent VALUES('" + stored.identity + "','"
+            /* final String msql = "INSERT INTO ChannelEvent VALUES('" + stored.identity + "','"
                                                                         + event.identity + "','"
-                                                                        + ordinal.get().toString() + "')";
-            try { connection.createStatement().executeUpdate(msql); }
+                                                                        + ordinal.get().toString() + "')"; */
+            final String msql = "INSERT INTO ChannelEvent VALUES (?,?,?)";
+            
+            try { 
+                /* connection.createStatement().executeUpdate(msql);  */
+                PreparedStatement mStmt = connection.prepareStatement(msql);
+                mStmt.setString(1,stored.identity.toString());
+                mStmt.setString(2,event.identity.toString());
+                mStmt.setString(3, ordinal.get().toString());
+
+                mStmt.executeUpdate();
+            }
             catch (SQLException e) { exception.accept(e) ; }
             ordinal.accept(ordinal.get() + 1);
         });
@@ -70,24 +89,44 @@ public final class ChannelStorage
         final Stored<Channel> current = get(channel.identity);
         final Stored<Channel> updated = current.newVersion(new_channel);
         if(current.version.equals(channel.version)) {
-            String sql = "UPDATE Channel SET" +
+            /* String sql = "UPDATE Channel SET" +
                 " (version,name) =('" 
                                 + updated.version  + "','"
                                 + new_channel.name
-                                + "') WHERE id='"+ updated.identity + "'";
-            connection.createStatement().executeUpdate(sql);
+                                + "') WHERE id='"+ updated.identity + "'"; */
+
+            String sql = "UPDATE Channel SET (version,name) = (?,?) WHERE id = ?";
             
+            /* connection.createStatement().executeUpdate(sql); */
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            stmt.setString(1,updated.version.toString());
+            stmt.setString(2,new_channel.name);
+            stmt.setString(3,updated.identity.toString());
+            stmt.executeUpdate();
             
             // Rewrite the list of events
-            connection.createStatement().executeUpdate("DELETE FROM ChannelEvent WHERE channel='" + channel.identity + "'");
+            /* connection.createStatement().executeUpdate("DELETE FROM ChannelEvent WHERE channel='" + channel.identity + "'"); */
+            PreparedStatement myStmt = connection.prepareStatement("DELETE FROM ChannelEvent WHERE channel= ?");
+            myStmt.setString(1,channel.identity.toString());
+            myStmt.executeUpdate();
             
             final Maybe.Builder<SQLException> exception = Maybe.builder();
             final Mutable<Integer> ordinal = new Mutable<Integer>(0);
             new_channel.events.forEach(event -> {
-                final String msql = "INSERT INTO ChannelEvent VALUES('" + channel.identity + "','"
+                /* final String msql = "INSERT INTO ChannelEvent VALUES('" + channel.identity + "','"
                                                                             + event.identity + "','"
-                                                                            + ordinal.get().toString() + "')";
-                try { connection.createStatement().executeUpdate(msql); }
+                                                                            + ordinal.get().toString() + "')"; */
+                final String msql = "INSERT INTO ChannelEvent VALUES (?,?,?)";
+
+                try { 
+                    /* connection.createStatement().executeUpdate(msql);  */
+                    PreparedStatement mStmt = connection.prepareStatement(msql);
+                    mStmt.setString(1,channel.identity.toString());
+                    mStmt.setString(2,event.identity.toString());
+                    mStmt.setString(3,ordinal.get().toString());
+                    mStmt.executeUpdate();
+
+                }
                 catch (SQLException e) { exception.accept(e) ; }
                 ordinal.accept(ordinal.get() + 1);
             });
@@ -107,8 +146,12 @@ public final class ChannelStorage
               SQLException {
         final Stored<Channel> current = get(channel.identity);
         if(current.version.equals(channel.version)) {
-        String sql =  "DELETE FROM Channel WHERE id ='" + channel.identity + "'";
-        connection.createStatement().executeUpdate(sql);
+        /* String sql =  "DELETE FROM Channel WHERE id ='" + channel.identity + "'"; */
+        String sql = "DELETE FROM Channel WHERE id = ?";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,channel.identity.toString());
+        stmt.executeUpdate();
+        /* connection.createStatement().executeUpdate(sql); */
         } else {
         throw new UpdatedException(current);
         }
@@ -118,14 +161,23 @@ public final class ChannelStorage
       throws DeletedException,
              SQLException {
 
-        final String channelsql = "SELECT version,name FROM Channel WHERE id = '" + id.toString() + "'";
-        final String eventsql = "SELECT event,ordinal FROM ChannelEvent WHERE channel = '" + id.toString() + "' ORDER BY ordinal DESC";
+        /* final String channelsql = "SELECT version,name FROM Channel WHERE id = '" + id.toString() + "'"; */
+        final String channelsql = "SELECT version, name FROM Channel WHERE id = ?";
 
-        final Statement channelStatement = connection.createStatement();
-        final Statement eventStatement = connection.createStatement();
+        /* final String eventsql = "SELECT event,ordinal FROM ChannelEvent WHERE channel = '" + id.toString() + "' ORDER BY ordinal DESC"; */
+        final String eventsql = "SELECT event,ordinal FROM ChannelEvent WHERE channel = ? ORDER BY ordinal DESC";
 
-        final ResultSet channelResult = channelStatement.executeQuery(channelsql);
-        final ResultSet eventResult = eventStatement.executeQuery(eventsql);
+        /* final Statement channelStatement = connection.createStatement();
+        final Statement eventStatement = connection.createStatement(); */
+        PreparedStatement channelStmt = connection.prepareStatement(channelsql);
+        channelStmt.setString(1,id.toString());
+        PreparedStatement eventStmt = connection.prepareStatement(eventsql);
+        eventStmt.setString(1,id.toString());
+
+        /* final ResultSet channelResult = channelStatement.executeQuery(channelsql);
+        final ResultSet eventResult = eventStatement.executeQuery(eventsql); */
+        final ResultSet channelResult = channelStmt.executeQuery();
+        final ResultSet eventResult = eventStmt.executeQuery();
 
         if(channelResult.next()) {
             final UUID version = 
@@ -146,9 +198,14 @@ public final class ChannelStorage
     
     public Stored<Channel> noChangeUpdate(UUID channelId)
         throws SQLException, DeletedException {
-        String sql = "UPDATE Channel SET" +
-                " (version) =('" + UUID.randomUUID() + "') WHERE id='"+ channelId + "'";
-        connection.createStatement().executeUpdate(sql);
+        /* String sql = "UPDATE Channel SET" +
+                " (version) =('" + UUID.randomUUID() + "') WHERE id='"+ channelId + "'"; */
+        String sql = "UPDATE Channel SET (version) = (?) WHERE id= ?";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,channelId.toString());
+        stmt.executeUpdate();
+
+        /* connection.createStatement().executeUpdate(sql); */
         Stored<Channel> channel = get(channelId);
         giveNextVersion(channel);
         return channel;
@@ -158,10 +215,15 @@ public final class ChannelStorage
       throws DeletedException,
              SQLException {
 
-        final String channelsql = "SELECT version FROM Channel WHERE id = '" + id.toString() + "'";
-        final Statement channelStatement = connection.createStatement();
+        /* final String channelsql = "SELECT version FROM Channel WHERE id = '" + id.toString() + "'"; */
+        final String channelsql = "SELECT version FROM Channel WHERE id = ?";
+        PreparedStatement channelStmt = connection.prepareStatement(channelsql);
+        channelStmt.setString(1, id.toString());
+        
+        /* final Statement channelStatement = connection.createStatement(); */
 
-        final ResultSet channelResult = channelStatement.executeQuery(channelsql);
+        /* final ResultSet channelResult = channelStatement.executeQuery(channelsql); */
+        final ResultSet channelResult = channelStmt.executeQuery();
         if(channelResult.next()) {
             return UUID.fromString(
                     channelResult.getString("version"));
@@ -228,8 +290,12 @@ public final class ChannelStorage
      */
     public Stored<Channel> lookupChannelForEvent(Stored<Channel.Event> e)
       throws SQLException, DeletedException {
-        String sql = "SELECT channel FROM ChannelEvent WHERE event='" + e.identity + "'";
-        final ResultSet rs = connection.createStatement().executeQuery(sql);
+        /* String sql = "SELECT channel FROM ChannelEvent WHERE event='" + e.identity + "'"; */
+        String sql = "SELECT channel FROM ChannelEvent WHERE event= ?";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,e.identity.toString());
+        /* final ResultSet rs = connection.createStatement().executeQuery(sql); */
+        final ResultSet rs = stmt.executeQuery();
         if(rs.next()) {
             final UUID channelId = UUID.fromString(rs.getString("channel"));
             return get(channelId);

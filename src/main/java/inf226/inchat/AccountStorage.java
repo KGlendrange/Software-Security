@@ -105,7 +105,10 @@ public final class AccountStorage
         
         
         // Rewrite the list of channels
-        connection.createStatement().executeUpdate("DELETE FROM AccountChannel WHERE account='" + account.identity + "'");
+        /* connection.createStatement().executeUpdate("DELETE FROM AccountChannel WHERE account='" + account.identity + "'"); */
+        PreparedStatement mstmt = connection.prepareStatement("DELETE FROM AccountChannel WHERE Account = ?");
+        mstmt.setString(1,account.identity.toString());
+        mstmt.executeUpdate();
         
         final Maybe.Builder<SQLException> exception = Maybe.builder();
         final Mutable<Integer> ordinal = new Mutable<Integer>(0);
@@ -164,7 +167,7 @@ public final class AccountStorage
     public Stored<Account> get(UUID id)
       throws DeletedException,
              SQLException {
-
+        System.err.println("get() with id : "+id);
         //final String accountsql = "SELECT version,user FROM Account WHERE id = '" + id.toString() + "'";
         final String accountsql = "SELECT version, user FROM Account WHERE id = ?";
          
@@ -177,7 +180,7 @@ public final class AccountStorage
 
         //final Statement channelStatement = connection.createStatement();
         PreparedStatement channelStatement = connection.prepareStatement(channelsql);
-        accountStatement.setString(1,id.toString());
+        channelStatement.setString(1,id.toString());
 
         //final ResultSet accountResult = accountStatement.executeQuery(accountsql);
         final ResultSet accountResult = accountStatement.executeQuery();
@@ -190,6 +193,8 @@ public final class AccountStorage
             final UUID userid =
             UUID.fromString(accountResult.getString("user"));
             final Stored<User> user = userStore.get(userid);
+
+
             // Get all the channels associated with this account
             final List.Builder<Pair<String,Stored<Channel>>> channels = List.builder();
             while(channelResult.next()) {
@@ -211,18 +216,31 @@ public final class AccountStorage
              SQLException {
         //final String sql = "SELECT Account.id from Account INNER JOIN User ON user=User.id where User.name='" + username + "'";
         final String sql = "SELECT Account.id from Account INNER JOIN User ON user=User.id where User.name = ?";
-        PreparedStatement statement = connection.prepareStatement(sql);
-        statement.setString(1,username);
-        System.err.println(sql+username);
-        //final Statement statement = connection.createStatement();
-        
-        
-        final ResultSet rs = statement.executeQuery();
-        if(rs.next()) {
-            final UUID identity = 
-                    UUID.fromString(rs.getString("id"));
-            return get(identity);
+        PreparedStatement stmt = null;
+        try{
+            System.err.println("test1");
+            stmt = connection.prepareStatement(sql);
+            System.err.println("test2");
+
+            stmt.setString(1,username);
+            System.err.println("test3");
+
+            final ResultSet rs = stmt.executeQuery();
+            System.err.println("test4");
+
+
+
+            if(rs.next()) {
+                final UUID identity = 
+                        UUID.fromString(rs.getString("id"));
+                System.err.println("identity: "+identity);
+                return get(identity);
+            }
+        }catch(SQLException e){
+            System.err.println("Error123: "+ e.getMessage());
         }
+        
+        
         throw new DeletedException();
     }
     

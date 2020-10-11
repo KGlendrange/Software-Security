@@ -140,7 +140,8 @@ public class Handler extends AbstractHandler
         // We set the session cookie to keep the user logged in:
 
         Cookie sessCookie = new Cookie("session",session.identity.toString());
-        sessCookie.setSecure(true);
+        //Setting the cookie to secure doesnt do anything unless using HTTPS which we cant
+        /* sessCookie.setSecure(true); */
         response.addCookie(sessCookie);
         
         final PrintWriter out = response.getWriter();

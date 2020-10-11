@@ -62,7 +62,7 @@ public final class SessionStorage
                             + new_session.account.identity  + "','"
                             + new_session.expiry.toString()
                             + "') WHERE id='"+ updated.identity + "'"; */
-        Sting sql = "UPDATE Session SET (version,account,expiry) = (?,?,?) WHERE id= ?";
+        String sql = "UPDATE Session SET (version,account,expiry) = (?,?,?) WHERE id= ?";
         PreparedStatement stmt = connection.prepareStatement(sql);
         stmt.setString(1,updated.version.toString());
         stmt.setString(2,new_session.account.identity.toString());

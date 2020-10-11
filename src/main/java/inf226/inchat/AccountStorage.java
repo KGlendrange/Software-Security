@@ -218,15 +218,11 @@ public final class AccountStorage
         final String sql = "SELECT Account.id from Account INNER JOIN User ON user=User.id where User.name = ?";
         PreparedStatement stmt = null;
         try{
-            System.err.println("test1");
             stmt = connection.prepareStatement(sql);
-            System.err.println("test2");
 
             stmt.setString(1,username);
-            System.err.println("test3");
 
             final ResultSet rs = stmt.executeQuery();
-            System.err.println("test4");
 
 
 
@@ -235,6 +231,9 @@ public final class AccountStorage
                         UUID.fromString(rs.getString("id"));
                 System.err.println("identity: "+identity);
                 return get(identity);
+            }
+            else{
+                System.err.println("no user with that name");
             }
         }catch(SQLException e){
             System.err.println("Error123: "+ e.getMessage());

@@ -14,6 +14,8 @@ import java.sql.SQLException;
 
 import inf226.util.immutable.List;
 
+import org.owasp.encoder.Encode;
+
 /**
  * This class models the chat logic.
  *

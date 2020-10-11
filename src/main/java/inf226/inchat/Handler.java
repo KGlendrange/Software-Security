@@ -29,6 +29,8 @@ import inf226.storage.*;
 import inf226.inchat.*;
 import inf226.util.*;
 
+import org.owasp.encoder.Encode;
+
 
 /**
  * The Hanlder class handles all HTTP and HTML components.
@@ -158,8 +160,8 @@ public class Handler extends AbstractHandler
                     // This is a request to post something in the channel.
                     
                     if(request.getParameter("newmessage") != null) {
-                        String message = (new Maybe<String>
-                            (request.getParameter("message"))).get();
+                        String message = (new Maybe<String> (request.getParameter("message"))).get();
+                        message = Encode.forHtml(message);
                         channel = inchat.postMessage(account,channel,message).get();
                     }
                     

@@ -9,18 +9,15 @@ public final class User {
     public final Instant joined;
 
     public final String name;
-    public final String password;
-    
 
-    public User(String name, String password,Instant joined){
+    public User(String name,Instant joined){
         this.joined = joined;
-        this.password = password;
-        this.name = new UserName(name).getUserName();
+        this.name = name;
 
     }
     
-    public static User create(String name, String password) {
-        return new User(name, new Password(password).getPassword(), Instant.now());
+    public static User create(String name) {
+        return new User(new UserName(name).getUserName(), Instant.now());
     }
 
 

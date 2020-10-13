@@ -30,7 +30,7 @@ public final class AccountStorage
         this.channelStore = channelStore;
         
         connection.createStatement()
-                .executeUpdate("CREATE TABLE IF NOT EXISTS Account (id TEXT PRIMARY KEY, version TEXT, user TEXT, FOREIGN KEY(user) REFERENCES User(id) ON DELETE CASCADE)");
+                .executeUpdate("CREATE TABLE IF NOT EXISTS Account (id TEXT PRIMARY KEY, version TEXT, user TEXT, hashed TEXT, FOREIGN KEY(user) REFERENCES User(id) ON DELETE CASCADE)");
         connection.createStatement()
                 .executeUpdate("CREATE TABLE IF NOT EXISTS AccountChannel (account TEXT, channel TEXT, alias TEXT, ordinal INTEGER, PRIMARY KEY(account,channel), FOREIGN KEY(account) REFERENCES Account(id) ON DELETE CASCADE, FOREIGN KEY(channel) REFERENCES Channel(id) ON DELETE CASCADE)");
     }
@@ -41,12 +41,13 @@ public final class AccountStorage
         
         final Stored<Account> stored = new Stored<Account>(account);
 
-        final String myQuery = "INSERT INTO Account VALUES (?,?,?)";
+        final String myQuery = "INSERT INTO Account VALUES (?,?,?,?)";
         
         PreparedStatement myStmt = connection.prepareStatement(myQuery);
         myStmt.setString(1,stored.identity.toString());
         myStmt.setString(2,stored.version.toString());
         myStmt.setString(3,account.user.identity.toString());
+        myStmt.setString(4,account.hashed.toString());
 
         myStmt.executeUpdate();
         
@@ -94,12 +95,13 @@ public final class AccountStorage
                             + new_account.user.identity
                             + "') WHERE id='"+ updated.identity + "'"; */
 
-        final String sql = "UPDATE Account SET (version,user) = (?,?) WHERE id = ?";
+        final String sql = "UPDATE Account SET (version,user,hashed) = (?,?,?) WHERE id = ?";
         
         PreparedStatement stmt = connection.prepareStatement(sql);
         stmt.setString(1,updated.version.toString());
         stmt.setString(2,new_account.user.identity.toString());
-        stmt.setString(3,updated.identity.toString());
+        stmt.setString(3,new_account.hashed.toString());
+        stmt.setString(4,updated.identity.toString());
 
         stmt.executeUpdate();
         
@@ -169,7 +171,7 @@ public final class AccountStorage
              SQLException {
         System.err.println("get() with id : "+id);
         //final String accountsql = "SELECT version,user FROM Account WHERE id = '" + id.toString() + "'";
-        final String accountsql = "SELECT version, user FROM Account WHERE id = ?";
+        final String accountsql = "SELECT version, user, hashed FROM Account WHERE id = ?";
          
         //final String channelsql = "SELECT channel,alias,ordinal FROM AccountChannel WHERE account = '" + id.toString() + "' ORDER BY ordinal DESC";
         final String channelsql = "SELECT channel,alias,ordinal FROM AccountChannel WHERE account = ? ORDER BY ordinal DESC";
@@ -194,6 +196,7 @@ public final class AccountStorage
             UUID.fromString(accountResult.getString("user"));
             final Stored<User> user = userStore.get(userid);
 
+            final Password hashed = new Password(accountResult.getString("hashed"));
 
             // Get all the channels associated with this account
             final List.Builder<Pair<String,Stored<Channel>>> channels = List.builder();
@@ -201,12 +204,14 @@ public final class AccountStorage
                 final UUID channelId = 
                     UUID.fromString(channelResult.getString("channel"));
                 final String alias = channelResult.getString("alias");
+                
                 channels.accept(
                     new Pair<String,Stored<Channel>>(
                         alias,channelStore.get(channelId)));
             }
-            return (new Stored<Account>(new Account(user,channels.getList()),id,version));
+            return (new Stored<Account>(new Account(user,channels.getList(),hashed),id,version));
         } else {
+            System.err.println("accountResult.next() returned false");
             throw new DeletedException();
         }
     }

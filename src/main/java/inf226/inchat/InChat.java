@@ -74,7 +74,7 @@ public class InChat {
             //User now stores the SCrypt hash of their password
             System.err.println("Trying to register user: \"" + username
             + "\" with password \"" + password + "\" inside inchat register()");
-            final User notStoredUser = User.create(username,password);
+            final User notStoredUser = User.create(username);
             System.err.println("Made the user : "+ notStoredUser.toString());
             final Stored<User> user =
                 userStore.save(notStoredUser);

@@ -2,7 +2,7 @@ package inf226.inchat;
 
 /**
  * The User class holds the public information
- * about a user.
+ * about a username.
  **/
      public final class UserName {
     public final String username;

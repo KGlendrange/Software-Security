@@ -15,11 +15,13 @@ import com.lambdaworks.crypto.SCryptUtil;
 public final class Account {
     public final Stored<User> user;
     public final List<Pair<String,Stored<Channel>>> channels;
+    public final Password hashed; 
     
     public Account(Stored<User> user, 
-                   List<Pair<String,Stored<Channel>>> channels) {
+                   List<Pair<String,Stored<Channel>>> channels, Password hashed) {
         this.user = user;
         this.channels = channels;
+        this.hashed = hashed;
 
     }
     
@@ -28,7 +30,7 @@ public final class Account {
      **/
     public static Account create(Stored<User> user,
                                  String password) {
-        return new Account(user,List.empty());
+        return new Account(user,List.empty(),Password.create(password));
     }
     
     
@@ -37,8 +39,8 @@ public final class Account {
             = new Pair<String,Stored<Channel>>(alias,channel);
         return new Account
                 (user,
-                 List.cons(entry,
-                           channels));
+                 List.cons(entry,channels),
+                 hashed);
     }
 
 
@@ -46,9 +48,8 @@ public final class Account {
         System.err.println("checking password: "+password);
         //SCrypt on the given password vs the hashed password
         System.err.println("user: "+this.user.value);
-        String hashed = this.user.value.password;
-        System.err.println("hashed: "+hashed);
-        boolean result = SCryptUtil.check(password, hashed);
+        System.err.println("hashed: "+this.hashed);
+        boolean result = SCryptUtil.check(password, hashed.toString());
         return result;
     }
     

@@ -10,17 +10,16 @@ import com.lambdaworks.crypto.SCryptUtil;
 public final class Password {
     public final String hashed;
 
-    public Password(String password) {
-        //Scrypt on the password, with N = 16384, r = 8, p = 1
-        this.hashed = SCryptUtil.scrypt(password,16384,8,1);
-        System.err.println("hashing a new password "+this.hashed);
-
+    public Password(String hashed) {
+        this.hashed = hashed;
     }
     
     public static Password create(String password) {
-        return new Password(password);
+        //Scrypt on the password, with N = 16384, r = 8, p = 1
+        String hashed = SCryptUtil.scrypt(password,16384,8,1);
+        return new Password(hashed);
     }
-    public String getPassword(){
+    public String toString(){
         return this.hashed;
     }
 }

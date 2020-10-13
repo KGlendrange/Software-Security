@@ -45,10 +45,7 @@ public final class Account {
 
 
     public boolean checkPassword(String password) {
-        System.err.println("checking password: "+password);
         //SCrypt on the given password vs the hashed password
-        System.err.println("user: "+this.user.value);
-        System.err.println("hashed: "+this.hashed);
         boolean result = SCryptUtil.check(password, hashed.toString());
         return result;
     }

@@ -143,7 +143,9 @@ public class Handler extends AbstractHandler
 
         Cookie sessCookie = new Cookie("session",session.identity.toString());
         //Setting the cookie to secure doesnt do anything unless using HTTPS which we cant
-        /* sessCookie.setSecure(true); */
+        /*  sessCookie.setSecure(true); 
+            
+        */
         response.addCookie(sessCookie);
         
         final PrintWriter out = response.getWriter();
@@ -448,7 +450,7 @@ public class Handler extends AbstractHandler
         out.println("<h4>Channel ID:</h4><br>" + channel.identity +"<br>");
         out.println("<p><a href=\"/join?channelid=" + channel.identity + "\">Join link</a></p>");
 
-        out.println("<h4>Set permissions</h4><form action=\"/channel/" + channel.identity + "\" method=\"post\">");
+        out.println("<h4>Set permissions</h4><form action=\"/channel/" + alias + "\" method=\"post\">");
         out.println("<input style=\"width: 8em;\" type=\"text\" placeholder=\"User name\" name=\"username\">");
         out.println("<select name=\"role\" required=\"required\">");
         out.println("<option value=\"owner\">Owner</option>");

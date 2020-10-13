@@ -77,7 +77,6 @@ public final class EventStorage
                     break;
             }
             switchStmt.executeUpdate();
-            System.err.println("test91");
         }catch(SQLException e){
             System.err.println("error: "+e);
         }

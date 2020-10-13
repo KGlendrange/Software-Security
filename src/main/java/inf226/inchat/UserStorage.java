@@ -33,7 +33,6 @@ public final class UserStorage
       throws SQLException {
         System.err.println("Trying to save user in UserStorage");
         final Stored<User> stored = new Stored<User>(user);
-        System.err.println("Test--code 888"+stored);
 
         /* String sql =  "INSERT INTO User VALUES('" + stored.identity + "','"
                                                   + stored.version  + "','"
@@ -42,7 +41,6 @@ public final class UserStorage
         String sql = "INSERT INTO User (id, version, name, joined) "
         +"VALUES (?,?,?,?)";
 
-        System.err.println("Test--code 789"+sql);
         PreparedStatement stmt = null;
         try{
             stmt = connection.prepareStatement(sql);

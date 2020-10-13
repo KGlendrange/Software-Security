@@ -114,12 +114,15 @@ public class InChat {
             System.err.println("When loging out of session:" + e);
         }
     }
+
+   
     
     /**
      * Create a new channel.
      */
     public Maybe<Stored<Channel>> createChannel(Stored<Account> account,
                                                 String name) {
+        name = Encode.forHtml(name);
         try {
             Stored<Channel> channel
                 = channelStore.save(new Channel(name,List.empty()));
@@ -210,6 +213,9 @@ public class InChat {
     }
     
     public Stored<Channel> deleteEvent(Stored<Channel> channel, Stored<Channel.Event> event) {
+        System.err.println("deleting event");
+        System.err.println("channel: "+channel);
+        System.err.println("event: "+event);
         try {
             Util.deleteSingle(event , channelStore.eventStore);
             return channelStore.noChangeUpdate(channel.identity);

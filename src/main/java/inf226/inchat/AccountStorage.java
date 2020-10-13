@@ -169,7 +169,6 @@ public final class AccountStorage
     public Stored<Account> get(UUID id)
       throws DeletedException,
              SQLException {
-        System.err.println("get() with id : "+id);
         //final String accountsql = "SELECT version,user FROM Account WHERE id = '" + id.toString() + "'";
         final String accountsql = "SELECT version, user, hashed FROM Account WHERE id = ?";
          
@@ -211,7 +210,6 @@ public final class AccountStorage
             }
             return (new Stored<Account>(new Account(user,channels.getList(),hashed),id,version));
         } else {
-            System.err.println("accountResult.next() returned false");
             throw new DeletedException();
         }
     }
@@ -234,14 +232,11 @@ public final class AccountStorage
             if(rs.next()) {
                 final UUID identity = 
                         UUID.fromString(rs.getString("id"));
-                System.err.println("identity: "+identity);
                 return get(identity);
             }
-            else{
-                System.err.println("no user with that name");
-            }
+
         }catch(SQLException e){
-            System.err.println("Error123: "+ e.getMessage());
+            System.err.println("Error: "+ e.getMessage());
         }
         
         

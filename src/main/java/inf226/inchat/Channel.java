@@ -3,20 +3,40 @@ package inf226.inchat;
 import inf226.util.immutable.List;
 import inf226.storage.Stored;
 import java.time.Instant;
+import inf226.util.Pair;
+
 
 public final class Channel {
     public final String name;
     public final List<Stored<Event>> events;
-    
-    public Channel(String name, List<Stored<Event>> events) {
+
+    public List<Pair<Stored<User>,String>> permissionList;
+
+    public Channel(String name, List<Stored<Event>> events, List<Pair<Stored<User>,String>> permissionList) {
         this.name=name;
         this.events=events;
+        this.permissionList = permissionList;
+        
     }
     
     public Channel postEvent(Stored<Event> event) {
-        return new Channel(name, List.cons(event,events));
+        return new Channel(name, List.cons(event,events),permissionList);
     }
-    
+    public void setPermission(Stored<User> user, String role){
+        //TO-DO:    
+
+
+ 
+    }
+    public List getPermission(){
+        return this.permissionList;
+    }
+
+
+
+
+    //Public class event!!
+
     public static class Event {
         public static enum Type {
             message(0),join(1);

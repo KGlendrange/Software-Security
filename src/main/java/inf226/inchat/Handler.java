@@ -181,6 +181,21 @@ public class Handler extends AbstractHandler
                         Stored<Channel.Event> event = inchat.getEvent(messageId).get();
                         channel = inchat.editMessage(channel, event, message);
                     }
+                    if(request.getParameter("setpermission") != null){
+
+                        String user = (new Maybe<String>
+                            (request.getParameter("username"))).get();
+                            
+                        String role = (new Maybe<String>
+                            (request.getParameter("role"))).get();
+                     
+
+                        channel = inchat.setRole(channel,user,role);
+
+                        
+                       
+                        
+                    }
                     
                     
                 }
@@ -417,9 +432,11 @@ public class Handler extends AbstractHandler
         account.channels.forEach( entry -> {
             out.println("<li> <a href=\"/channel/" + entry.first + "\">" + entry.first + "</a></li>");
         });
+
         out.println("</ul>");
         out.println("</aside>");
     }
+    
   
     /**
     * Render a channel as HTML
@@ -452,12 +469,15 @@ public class Handler extends AbstractHandler
 
         out.println("<h4>Set permissions</h4><form action=\"/channel/" + alias + "\" method=\"post\">");
         out.println("<input style=\"width: 8em;\" type=\"text\" placeholder=\"User name\" name=\"username\">");
+
         out.println("<select name=\"role\" required=\"required\">");
+
         out.println("<option value=\"owner\">Owner</option>");
         out.println("<option value=\"moderator\">Moderator</option>");
         out.println("<option value=\"participant\">Participant</option>");
         out.println("<option value=\"observer\">Observer</option>");
         out.println("<option value=\"banned\">Banned</option>");
+
         out.println("<input type=\"submit\" name=\"setpermission\" value=\"Set!\">");
         out.println("</select>");
         out.println("</form>");

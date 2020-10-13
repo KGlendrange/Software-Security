@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.time.Instant;
 import java.sql.SQLException;
 
+import inf226.util.Pair;
+
 
 import inf226.util.immutable.List;
 
@@ -125,7 +127,7 @@ public class InChat {
         name = Encode.forHtml(name);
         try {
             Stored<Channel> channel
-                = channelStore.save(new Channel(name,List.empty()));
+                = channelStore.save(new Channel(name,List.empty(),List.empty()));
             return joinChannel(account, channel.identity);
         } catch (SQLException e) {
             System.err.println("When trying to create channel " + name +":\n" + e);
@@ -140,6 +142,8 @@ public class InChat {
                                               UUID channelID) {
         try {
             Stored<Channel> channel = channelStore.get(channelID);
+
+        
             Util.updateSingle(account,
                               accountStore,
                               a -> a.value.joinChannel(channel.value.name,channel));
@@ -212,10 +216,11 @@ public class InChat {
         }
     }
     
-    public Stored<Channel> deleteEvent(Stored<Channel> channel, Stored<Channel.Event> event) {
-        System.err.println("deleting event");
-        System.err.println("channel: "+channel);
-        System.err.println("event: "+event);
+    public Stored<Channel> deleteEvent(Stored<Channel> channel, Stored<Channel.Event> event,Stored<Session> session) {
+        /* User activeUser = session.value.account.value.user;
+        if(channel.value.permissionList.contains(activeUser,"admin"))){
+            
+        } */
         try {
             Util.deleteSingle(event , channelStore.eventStore);
             return channelStore.noChangeUpdate(channel.identity);
@@ -240,6 +245,47 @@ public class InChat {
         }
         return channel;
     }
+
+    public Stored<Channel> setRole(Stored<Channel> channel,String user, String role){
+        System.err.println("In channel: "+channel+" setting role: "+role+" to user: "+user);
+
+        final Maybe<Stored<User>> userObj= userStore.lookup(user);
+
+
+
+        System.err.println("userobj: "+userObj);
+
+        System.err.println("username: "+ userObj);
+
+        Stored<User> p1 = new Stored<User>(User.create(user),channel.identity,channel.version);
+        String p2 = role;
+        
+        Pair<Stored<User>,String> pair = new Pair(p1,p2);
+        System.err.println("pair: "+p1+"-"+p2);
+
+        System.err.println("permlist1: "+channel.value.permissionList.length);
+        channel.value.permissionList.add(pair);
+        System.err.println("permlist2: "+channel.value.permissionList.length);
+
+        //namelist = [ola, per, truls]
+
+        //rolelist = [admin,admin,admin]
+
+
+        try{
+            System.err.println("trying to save channel with new permissions");
+            Stored<Channel> new_channel = channelStore.save(channel.value);
+            return new_channel;
+        }catch(SQLException e){
+            System.err.println("error: "+e);
+        }
+        System.err.println("if you read this something went wrong");
+        return channel;
+
+        
+    }
+
+   
 }
 
 

@@ -12,7 +12,8 @@ import java.time.Instant;
 import java.sql.SQLException;
 
 import inf226.util.Pair;
-
+import inf226.util.Triple;
+import java.util.Arrays;
 
 import inf226.util.immutable.List;
 
@@ -127,7 +128,7 @@ public class InChat {
         name = Encode.forHtml(name);
         try {
             Stored<Channel> channel
-                = channelStore.save(new Channel(name,List.empty(),List.empty()));
+                = channelStore.save(new Channel(name,List.empty()));
             return joinChannel(account, channel.identity);
         } catch (SQLException e) {
             System.err.println("When trying to create channel " + name +":\n" + e);
@@ -140,13 +141,29 @@ public class InChat {
      */
     public Maybe<Stored<Channel>> joinChannel(Stored<Account> account,
                                               UUID channelID) {
+
+                                          
         try {
+        
             Stored<Channel> channel = channelStore.get(channelID);
 
-        
+            String[] allowed = new String[4];
+            allowed[0] = "owner";
+            allowed[1] = "moderator";
+            allowed[2] = "participant";
+            allowed[3] = "observer";
+            if(!checkPermission(account, channel, null, allowed)){
+                return Maybe.nothing();
+            }      
+
+
+            //Default role when joining
+            String role = "Participant";
+            String alias = channel.value.name;
+            
             Util.updateSingle(account,
                               accountStore,
-                              a -> a.value.joinChannel(channel.value.name,channel));
+                              a -> a.value.joinChannel(alias,role,channel));
             Stored<Channel.Event> joinEvent
                 = channelStore.eventStore.save(
                     Channel.Event.createJoinEvent(Instant.now(),
@@ -169,7 +186,13 @@ public class InChat {
     public Maybe<Stored<Channel>> postMessage(Stored<Account> account,
                                               Stored<Channel> channel,
                                               String message) {
-        
+        String[] allowed = new String[3];
+        allowed[0] = "owner";
+        allowed[1] = "moderator";
+        allowed[3] = "participant";
+        if(!checkPermission(account, channel, null, allowed)){
+            return Maybe.nothing();
+        }
         System.err.println("Trying to post a message in inChat postMessage()");
         try {
             Stored<Channel.Event> event
@@ -215,9 +238,27 @@ public class InChat {
             return Maybe.nothing();
         }
     }
-    
-    public Stored<Channel> deleteEvent(Stored<Channel> channel, Stored<Channel.Event> event) {
+
+    public boolean checkPermission(Stored<Account> account, Stored<Channel> channel, Stored<Channel.Event> event, String[] allowed){
+        if(event!= null){
+            if(event.value.sender.equals(account.value.user.value.name)) return true;
         
+            //Also check if account.value.channels which are made up of a triple (alias,role,channel) has an alias same as the channel
+            //as well as if allowed.contains role
+        }
+       
+
+        System.err.println("permission ALWAYS allowed for now (needs fix)");
+        return true;
+    }
+    
+    public Stored<Channel> deleteEvent(Stored<Account> account, Stored<Channel> channel, Stored<Channel.Event> event) {
+        String[] allowed = new String[2];
+        allowed[0] = "owner";
+        allowed[1] = "moderator";
+        if(!checkPermission(account, channel, event, allowed)){
+            return channel;
+        }
         try {
             Util.deleteSingle(event , channelStore.eventStore);
             return channelStore.noChangeUpdate(channel.identity);
@@ -228,9 +269,15 @@ public class InChat {
         return channel;
     }
     
-    public Stored<Channel> editMessage(Stored<Channel> channel,
+    public Stored<Channel> editMessage(Stored<Account> account, Stored<Channel> channel,
                                        Stored<Channel.Event> event,
                                        String newMessage) {
+        String[] allowed = new String[2];
+        allowed[0] = "owner";
+        allowed[1] = "moderator";
+        if(!checkPermission(account, channel, event, allowed)){
+            return channel;
+        }
         try{
             Util.updateSingle(event,
                             channelStore.eventStore,
@@ -243,40 +290,59 @@ public class InChat {
         return channel;
     }
 
-    public Stored<Channel> setRole(Stored<Channel> channel,String user, String role){
-        System.err.println("In channel: "+channel+" setting role: "+role+" to user: "+user);
-
-        final Maybe<Stored<User>> userObj= userStore.lookup(user);
-
-
-
-        System.err.println("userobj: "+userObj);
-
-        System.err.println("username: "+ userObj);
-
-        Stored<User> p1 = new Stored<User>(User.create(user),channel.identity,channel.version);
-        String p2 = role;
+    public Stored<Channel> setRole(Stored<Account> activaterAccount, Stored<Channel> channel, String user, String new_role){
+        String[] allowed = new String[1];
+        allowed[0] = "owner";
         
-        Pair<Stored<User>,String> pair = new Pair(p1,p2);
-        System.err.println("pair: "+p1+"-"+p2);
+        if(!checkPermission(activaterAccount,channel, null, allowed)){
+            return channel;
+        }
 
-        System.err.println("permlist1: "+channel.value.permissionList.length);
-        channel.value.permissionList.add(pair);
-        System.err.println("permlist2: "+channel.value.permissionList.length);
-
-        //namelist = [ola, per, truls]
-
-        //rolelist = [admin,admin,admin]
-
+        System.err.println("In channel: "+channel.value.name+" setting role: "+new_role+" to user: "+user);
 
         try{
-            System.err.println("trying to save channel with new permissions");
-            Stored<Channel> new_channel = channelStore.save(channel.value);
-            return new_channel;
-        }catch(SQLException e){
-            System.err.println("error: "+e);
+            // Get all the channels associated with this account
+            final List.Builder<Triple<String,String,Stored<Channel>>> channels = List.builder();
+            Stored<Account> account = accountStore.lookup(user);
+            System.err.println("old channel length :"+account.value.channels.length);
+
+            account.value.channels.forEach(e -> {
+                final String alias = e.first;
+                String role = e.second;
+                final Stored<Channel> ch = e.third;
+                if(alias.equals(channel.value.name)){
+                    System.err.println("changing role from : "+role+" to "+new_role);
+                    role = new_role;
+                }
+
+                channels.accept(
+                    new Triple<String,String,Stored<Channel>>(
+                        alias,role,ch));
+        
+            });
+            //Finished
+            System.err.println("channelsTest: ");
+            List<Triple<String,String,Stored<Channel>>> chs = channels.getList();
+            chs.forEach(e ->{
+                System.err.println(e.first+"-"+e.second+"-"+e.third);
+            });
+
+            //make a new account that is a clone of the previous account, except one entry in channels has changed the role
+            Account new_account = new Account(account.value.user,chs,account.value.hashed);
+            Stored<Account> result = accountStore.update(account,new_account);
+            System.err.println("result: ");
+            result.value.channels.forEach(e->{
+                System.err.println(e.first+"-"+e.second+"-"+e.third);
+            });
+
+            return channel;
+            
+
+        }catch(Exception e){
+
         }
-        System.err.println("if you read this something went wrong");
+        
+        
         return channel;
 
         

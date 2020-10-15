@@ -37,8 +37,7 @@ public final class ChannelStorage
                 .executeUpdate("CREATE TABLE IF NOT EXISTS Channel (id TEXT PRIMARY KEY, version TEXT, name TEXT)");
         connection.createStatement()
                 .executeUpdate("CREATE TABLE IF NOT EXISTS ChannelEvent (channel TEXT, event TEXT, ordinal INTEGER, PRIMARY KEY(channel,event), FOREIGN KEY(channel) REFERENCES Channel(id) ON DELETE CASCADE, FOREIGN KEY(event) REFERENCES Event(id) ON DELETE CASCADE)");
-        connection.createStatement()
-                .executeUpdate("CREATE TABLE IF NOT EXISTS Permissions (channel TEXT, user TEXT, role TEXT, PRIMARY KEY(channel,user), FOREIGN KEY(channel) REFERENCES Channel(id) ON DELETE CASCADE, FOREIGN KEY(user) REFERENCES User(id) ON DELETE CASCADE)");
+
         }
     
     @Override
@@ -58,27 +57,6 @@ public final class ChannelStorage
         stmt.setString(3,channel.name);
 
         stmt.executeUpdate();
-
-
-        System.err.println("channel.permissionList: ");
-        channel.permissionList.forEach(element -> {
-            System.err.println("elem: "+element);
-            Stored<User> user = element.first;
-            String role = element.second;
-
-            final String permsql = "INSERT INTO Permissions VALUES (?,?,?)";
-            try{
-                PreparedStatement permstmt = connection.prepareStatement(permsql);
-                permstmt.setString(1,stored.identity.toString());
-                permstmt.setString(2,user.identity.toString());
-                permstmt.setString(3,role);
-
-                permstmt.executeUpdate();
-            }catch(SQLException e){
-                System.err.println("error: "+e);
-            }
-        });
-
         
         // Write the list of events
         final Maybe.Builder<SQLException> exception = Maybe.builder();
@@ -208,12 +186,6 @@ public final class ChannelStorage
         final ResultSet channelResult = channelStmt.executeQuery();
         final ResultSet eventResult = eventStmt.executeQuery();
 
-        final String permissionsql = "SELECT user,role FROM Permissions WHERE channel = ?";
-        PreparedStatement permissionStmt = connection.prepareStatement(permissionsql);
-        permissionStmt.setString(1,id.toString());
-        
-
-        final ResultSet permissionResult = permissionStmt.executeQuery();
 
         
         
@@ -224,11 +196,6 @@ public final class ChannelStorage
             final String name =
                 channelResult.getString("name");
 
-            /* //Get the permisisonList accociated with this channel
-            final List.Builder<Pair<Stored<User>,String>> permissionList = List.builder(); */
-
-            
-
             // Get all the events associated with this channel
             final List.Builder<Stored<Channel.Event>> events = List.builder();
 
@@ -237,22 +204,8 @@ public final class ChannelStorage
                 final UUID eventId = UUID.fromString(eventResult.getString("event"));
                 events.accept(eventStore.get(eventId));
             }
-            if(permissionResult.next()){
-                final String userString  = permissionResult.getString("user");
-                System.err.println("userstring: "+userString);
-
-/* 
-                final Stored<User> new_user = new Stored<User>(user,id,version);
-                final String role = permissionResult.getString("role");
-
-                final Pair<Stored<User>,String> pair = new Pair<Stored<User>,String>(user,role);
-    
-                final List.Builder<Pair<Stored<User>,String>> permissionList = List.builder(); */
-
-                return (new Stored<Channel>(new Channel(name,events.getList(),List.empty()),id,version));
-            }else{
-                return (new Stored<Channel>(new Channel(name,events.getList(),List.empty()),id,version));
-            }
+            return (new Stored<Channel>(new Channel(name,events.getList()),id,version));
+        
             
         } else {
             throw new DeletedException();

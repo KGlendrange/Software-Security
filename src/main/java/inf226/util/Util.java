@@ -12,12 +12,13 @@ public class Util {
        catch (Maybe.NothingException e) { /* Intensionally left blank */ }
    }
    
-    public static<A,B> Maybe<B> lookup(List<Pair<A,B>> list, A key) {
-        final Maybe.Builder<B> result
-            = new Maybe.Builder<B>();
-        list.forEach(pair -> {
-            if(pair.first.equals(key))
-                result.accept(pair.second);
+    
+    public static<A,B,C> Maybe<C> lookup(List<Triple<A,B,C>> list, A key){
+        final Maybe.Builder<C> result
+            = new Maybe.Builder<C>();
+        list.forEach(triple -> {
+            if(triple.first.equals(key))
+                result.accept(triple.third);
         });
         return result.getMaybe();
     }

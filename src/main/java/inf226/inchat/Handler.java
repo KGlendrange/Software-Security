@@ -172,7 +172,7 @@ public class Handler extends AbstractHandler
                         UUID messageId = 
                             UUID.fromString(Maybe.just(request.getParameter("message")).get());
                         Stored<Channel.Event> message = inchat.getEvent(messageId).get();
-                        channel = inchat.deleteEvent(channel, message);
+                        channel = inchat.deleteEvent(account,channel, message);
                     }
                     if(request.getParameter("editmessage") != null) {
                         String message = (new Maybe<String>
@@ -180,7 +180,7 @@ public class Handler extends AbstractHandler
                         UUID messageId = 
                             UUID.fromString(Maybe.just(request.getParameter("message")).get());
                         Stored<Channel.Event> event = inchat.getEvent(messageId).get();
-                        channel = inchat.editMessage(channel, event, message);
+                        channel = inchat.editMessage(account,channel, event, message);
                     }
                     if(request.getParameter("setpermission") != null && checkToken(request,session,"setpermission")){
 
@@ -191,7 +191,7 @@ public class Handler extends AbstractHandler
                             (request.getParameter("role"))).get();
                      
 
-                        channel = inchat.setRole(channel,user,role);
+                        channel = inchat.setRole(account,channel,user,role);
 
                         
                        
@@ -494,7 +494,7 @@ public class Handler extends AbstractHandler
         out.println("<select name=\"role\" required=\"required\">");
 
         out.println("<option value=\"owner\">Owner</option>");
-        out.println("<option value=\"moderator\">Moderator</option>");
+        out.println("<option va lue=\"moderator\">Moderator</option>");
         out.println("<option value=\"participant\">Participant</option>");
         out.println("<option value=\"observer\">Observer</option>");
         out.println("<option value=\"banned\">Banned</option>");

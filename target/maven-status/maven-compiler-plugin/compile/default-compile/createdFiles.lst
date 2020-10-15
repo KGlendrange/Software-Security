@@ -12,6 +12,7 @@ inf226\inchat\ChannelStorage.class
 inf226\inchat\User.class
 inf226\util\Pair.class
 inf226\util\Either.class
+inf226\util\Triple.class
 inf226\inchat\Channel$Event$Type.class
 inf226\inchat\Channel$Event.class
 inf226\inchat\Handler$1.class

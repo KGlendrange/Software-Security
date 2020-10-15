@@ -12,28 +12,15 @@ public final class Channel {
 
     public List<Pair<Stored<User>,String>> permissionList;
 
-    public Channel(String name, List<Stored<Event>> events, List<Pair<Stored<User>,String>> permissionList) {
+    public Channel(String name, List<Stored<Event>> events) {
         this.name=name;
-        this.events=events;
-        this.permissionList = permissionList;
-        
+        this.events=events;        
     }
     
     public Channel postEvent(Stored<Event> event) {
-        return new Channel(name, List.cons(event,events),permissionList);
+        return new Channel(name, List.cons(event,events));
     }
-    public void setPermission(Stored<User> user, String role){
-        //TO-DO:    
-
-
  
-    }
-    public List getPermission(){
-        return this.permissionList;
-    }
-
-
-
 
     //Public class event!!
 

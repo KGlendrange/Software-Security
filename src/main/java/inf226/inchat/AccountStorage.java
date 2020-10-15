@@ -32,7 +32,7 @@ public final class AccountStorage
         connection.createStatement()
                 .executeUpdate("CREATE TABLE IF NOT EXISTS Account (id TEXT PRIMARY KEY, version TEXT, user TEXT, hashed TEXT, FOREIGN KEY(user) REFERENCES User(id) ON DELETE CASCADE)");
         connection.createStatement()
-                .executeUpdate("CREATE TABLE IF NOT EXISTS AccountChannel (account TEXT, channel TEXT, alias TEXT, ordinal INTEGER, PRIMARY KEY(account,channel), FOREIGN KEY(account) REFERENCES Account(id) ON DELETE CASCADE, FOREIGN KEY(channel) REFERENCES Channel(id) ON DELETE CASCADE)");
+                .executeUpdate("CREATE TABLE IF NOT EXISTS AccountChannel (account TEXT, channel TEXT, alias TEXT, role TEXT, ordinal INTEGER, PRIMARY KEY(account,channel), FOREIGN KEY(account) REFERENCES Account(id) ON DELETE CASCADE, FOREIGN KEY(channel) REFERENCES Channel(id) ON DELETE CASCADE)");
     }
     
     @Override
@@ -56,20 +56,22 @@ public final class AccountStorage
         final Mutable<Integer> ordinal = new Mutable<Integer>(0);
         account.channels.forEach(element -> {
             String alias = element.first;
-            Stored<Channel> channel = element.second;
+            String role = element.second;
+            Stored<Channel> channel = element.third;
             /* final String msql
               = "INSERT INTO AccountChannel VALUES('" + stored.identity + "','"
                                                       + channel.identity + "','"
                                                       + alias + "','"
                                                       + ordinal.get().toString() + "')"; */
-            final String msql = "INSERT INTO AccountChannel VALUES (?,?,?,?)";
+            final String msql = "INSERT INTO AccountChannel VALUES (?,?,?,?,?)";
 
             try { 
                 PreparedStatement mStmt = connection.prepareStatement(msql);
                 mStmt.setString(1,stored.identity.toString());
                 mStmt.setString(2,channel.identity.toString());
                 mStmt.setString(3,alias);
-                mStmt.setString(4,ordinal.get().toString());
+                mStmt.setString(4,role);
+                mStmt.setString(5,ordinal.get().toString());
                 mStmt.executeUpdate(); 
             }
             catch (SQLException e) { exception.accept(e) ; }
@@ -116,14 +118,15 @@ public final class AccountStorage
         final Mutable<Integer> ordinal = new Mutable<Integer>(0);
         new_account.channels.forEach(element -> {
             String alias = element.first;
-            Stored<Channel> channel = element.second;
+            String role = element.second;
+            Stored<Channel> channel = element.third;
             /* final String msql
                 = "INSERT INTO AccountChannel VALUES('" + account.identity + "','"
                                                         + channel.identity + "','"
                                                         + alias + "','"
                                                         + ordinal.get().toString() + "')"; */
             
-            final String msql = "INSERT INTO AccountChannel VALUES (?,?,?,?)";
+            final String msql = "INSERT INTO AccountChannel VALUES (?,?,?,?,?)";
 
             
             
@@ -132,7 +135,8 @@ public final class AccountStorage
                 mStmt.setString(1,account.identity.toString());
                 mStmt.setString(2,channel.identity.toString());
                 mStmt.setString(3,alias);
-                mStmt.setString(4,ordinal.get().toString());
+                mStmt.setString(4,role);
+                mStmt.setString(5,ordinal.get().toString());
                 mStmt.executeUpdate(); 
             }
             catch (SQLException e) { exception.accept(e) ; }
@@ -173,7 +177,7 @@ public final class AccountStorage
         final String accountsql = "SELECT version, user, hashed FROM Account WHERE id = ?";
          
         //final String channelsql = "SELECT channel,alias,ordinal FROM AccountChannel WHERE account = '" + id.toString() + "' ORDER BY ordinal DESC";
-        final String channelsql = "SELECT channel,alias,ordinal FROM AccountChannel WHERE account = ? ORDER BY ordinal DESC";
+        final String channelsql = "SELECT channel,alias,role,ordinal FROM AccountChannel WHERE account = ? ORDER BY ordinal DESC";
 
         //final Statement accountStatement = connection.createStatement();
         PreparedStatement accountStatement = connection.prepareStatement(accountsql);
@@ -198,15 +202,16 @@ public final class AccountStorage
             final Password hashed = new Password(accountResult.getString("hashed"));
 
             // Get all the channels associated with this account
-            final List.Builder<Pair<String,Stored<Channel>>> channels = List.builder();
+            final List.Builder<Triple<String,String,Stored<Channel>>> channels = List.builder();
             while(channelResult.next()) {
                 final UUID channelId = 
                     UUID.fromString(channelResult.getString("channel"));
                 final String alias = channelResult.getString("alias");
+                final String role = channelResult.getString("role");
                 
                 channels.accept(
-                    new Pair<String,Stored<Channel>>(
-                        alias,channelStore.get(channelId)));
+                    new Triple<String,String,Stored<Channel>>(
+                        alias,role,channelStore.get(channelId)));
             }
             return (new Stored<Account>(new Account(user,channels.getList(),hashed),id,version));
         } else {

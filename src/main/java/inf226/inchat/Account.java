@@ -1,6 +1,6 @@
 package inf226.inchat;
 import inf226.util.immutable.List;
-import inf226.util.Pair;
+import inf226.util.Triple;
 
 
 import inf226.storage.*;
@@ -14,11 +14,11 @@ import com.lambdaworks.crypto.SCryptUtil;
  **/
 public final class Account {
     public final Stored<User> user;
-    public final List<Pair<String,Stored<Channel>>> channels;
+    public final List<Triple<String,String,Stored<Channel>>> channels;
     public final Password hashed; 
     
     public Account(Stored<User> user, 
-                   List<Pair<String,Stored<Channel>>> channels, Password hashed) {
+                   List<Triple<String,String,Stored<Channel>>> channels, Password hashed) {
         this.user = user;
         this.channels = channels;
         this.hashed = hashed;
@@ -34,9 +34,9 @@ public final class Account {
     }
     
     
-    public Account joinChannel(String alias, Stored<Channel> channel) {
-        Pair<String,Stored<Channel>> entry
-            = new Pair<String,Stored<Channel>>(alias,channel);
+    public Account joinChannel(String alias, String role, Stored<Channel> channel) {
+        Triple<String,String,Stored<Channel>> entry
+            = new Triple<String,String,Stored<Channel>>(alias,role,channel);
         return new Account
                 (user,
                  List.cons(entry,channels),

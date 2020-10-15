@@ -161,7 +161,7 @@ public class Handler extends AbstractHandler
                 if(request.getMethod().equals("POST")) {
                     // This is a request to post something in the channel.
                     
-                    if(request.getParameter("newmessage") != null) {
+                    if(request.getParameter(session.identity.toString()) != null) {
                         String message = (new Maybe<String> (request.getParameter("message"))).get();
                         message = Encode.forHtml(message);
                         channel = inchat.postMessage(account,channel,message).get();
@@ -207,7 +207,7 @@ public class Handler extends AbstractHandler
                 printStandardTop(out,  "inChat: " + alias);
                 out.println("<div class=\"main\">");
                 printChannelList(out, account.value, alias);
-                printChannel(out, channel, alias);
+                printChannel(out, channel, alias, session.identity.toString());
                 out.println("</div>");
                 out.println("</body>");
                 out.println("</html>");
@@ -443,7 +443,7 @@ public class Handler extends AbstractHandler
     **/
     private void printChannel(PrintWriter out,
                               Stored<Channel> channel,
-                              String alias) {
+                              String alias,String key) {
         
         out.println("<main id=\"channel\" role=\"main\" class=\"channel\">");
         printChannelEvents(out,channel);
@@ -452,7 +452,7 @@ public class Handler extends AbstractHandler
         
         out.println("<form class=\"entry\" action=\"/channel/" + alias + "\" method=\"post\">");
         out.println("  <div class=\"user\">You</div>");
-        out.println("  <input type=\"hidden\" name=\"newmessage\" value=\"Send\">");
+        out.println("  <input type=\"hidden\" name=\""+key+"\" value=\"Send\">");
         out.println("  <textarea id=\"messageInput\" class=\"messagebox\" placeholder=\"Post a message in this channel!\" name=\"message\"></textarea>");
         out.println("  <div class=\"controls\"><input style=\"float: right;\" type=\"submit\" name=\"send\" value=\"Send\"></div>");
         out.println("</form>");

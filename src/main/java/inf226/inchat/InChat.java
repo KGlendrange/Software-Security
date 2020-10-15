@@ -216,11 +216,8 @@ public class InChat {
         }
     }
     
-    public Stored<Channel> deleteEvent(Stored<Channel> channel, Stored<Channel.Event> event,Stored<Session> session) {
-        /* User activeUser = session.value.account.value.user;
-        if(channel.value.permissionList.contains(activeUser,"admin"))){
-            
-        } */
+    public Stored<Channel> deleteEvent(Stored<Channel> channel, Stored<Channel.Event> event) {
+        
         try {
             Util.deleteSingle(event , channelStore.eventStore);
             return channelStore.noChangeUpdate(channel.identity);

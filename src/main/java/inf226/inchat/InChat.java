@@ -131,7 +131,7 @@ public class InChat {
                 = channelStore.save(new Channel(name,List.empty()));
             
             Maybe<Stored<Channel>> result = joinChannel(account, channel.identity);
-            setRole(account,channel,account.value.user.value.name,"owner");
+            setRoleWithoutPermission(account,channel,account.value.user.value.name,"owner");
             return result;
         } catch (SQLException e) {
             System.err.println("When trying to create channel " + name +":\n" + e);
@@ -150,18 +150,18 @@ public class InChat {
         
             Stored<Channel> channel = channelStore.get(channelID);
 
-            String[] allowed = new String[5];
-            allowed[0] = "owner";
-            allowed[1] = "moderator";
-            allowed[2] = "participant";
-            allowed[3] = "observer";
-            if(!checkPermission(account, channel, null, allowed)){
-                return Maybe.nothing();
-            }      
+            try{
+                String role = accountStore.lookupRoleInChannel(channel, account);
+                System.err.println("role: "+ role);
+                if(role.equals("banned")) return Maybe.nothing();
+    
+            }catch(Exception e){
+    
+            }
 
 
             //Default role when joining
-            String role = "Participant";
+            String role = "participant";
             String alias = channel.value.name;
             
             Util.updateSingle(account,
@@ -243,25 +243,22 @@ public class InChat {
     }
 
     public boolean checkPermission(Stored<Account> account, Stored<Channel> channel, Stored<Channel.Event> event, String[] allowed){
+        System.err.println("allowed: "+Arrays.toString(allowed));
         if(event!= null){
+            System.err.println("event is not null");
             if(event.value.sender.equals(account.value.user.value.name)) return true;
-        
-            //Also check if account.value.channels which are made up of a triple (alias,role,channel) has an alias same as the channel
-            //as well as if allowed.contains role
-            account.value.channels.forEach(e -> {
-                //match to channel
-                if(e.first.equals(channel.value.name)){
-                    //if your role in this channel is any of the ones in the allowed array
-                    if(Arrays.asList(allowed).contains(e.second)){
-                        final boolean flag = true;
-                    }
-                }
-            });
+            
         }
-       
+        try{
+            String role = accountStore.lookupRoleInChannel(channel, account);
+            System.err.println("role: "+ role);
+            if(Arrays.asList(allowed).contains(role)) return true;
 
-        System.err.println("permission ALWAYS allowed for now (needs fix)");
-        return true;
+        }catch(Exception e){
+
+        }
+        System.err.println("permission DENIED");
+        return false;
     }
     
     public Stored<Channel> deleteEvent(Stored<Account> account, Stored<Channel> channel, Stored<Channel.Event> event) {
@@ -302,21 +299,11 @@ public class InChat {
         return channel;
     }
 
-    public void setRole(Stored<Account> activaterAccount, Stored<Channel> channel, String user, String new_role){
-        String[] allowed = new String[5];
-        allowed[0] = "owner";
-        
-        if(!checkPermission(activaterAccount,channel, null, allowed)){
-            return;
-        }
-
-
+    public void setRoleWithoutPermission(Stored<Account> activaterAccount, Stored<Channel> channel, String user, String new_role){
         try{
             // Get all the channels associated with this account
             final List.Builder<Triple<String,String,Stored<Channel>>> channels = List.builder();
             Stored<Account> account = accountStore.lookup(user);
-            System.err.println("In channel: "+channel.value.name+" setting role: "+new_role+" to user: "+user);
-
 
             account.value.channels.forEach(e -> {
                 final String alias = e.first;
@@ -329,23 +316,57 @@ public class InChat {
 
                 channels.accept(
                     new Triple<String,String,Stored<Channel>>(
-                        alias,role,ch));
+                        alias,role.toLowerCase(),ch));
         
             });
             //Finished
             System.err.println("channelsTest: ");
             List<Triple<String,String,Stored<Channel>>> chs = channels.getList();
-            chs.forEach(e ->{
-                System.err.println(e.first+"-"+e.second+"-"+e.third);
-            });
-
-            //make a new account that is a clone of the previous account, except one entry in channels has changed the role
+            
             Account new_account = new Account(account.value.user,chs,account.value.hashed);
             Stored<Account> result = accountStore.update(account,new_account);
-            System.err.println("result: ");
-            result.value.channels.forEach(e->{
-                System.err.println(e.first+"-"+e.second+"-"+e.third);
+            
+            
+
+        }catch(Exception e){
+
+        }
+    }
+
+    public void setRole(Stored<Account> activaterAccount, Stored<Channel> channel, String user, String new_role){
+        String[] allowed = new String[5];
+        allowed[0] = "owner";
+        
+        if(!checkPermission(activaterAccount,channel, null, allowed)){
+            return;
+        }
+
+        try{
+            // Get all the channels associated with this account
+            final List.Builder<Triple<String,String,Stored<Channel>>> channels = List.builder();
+            Stored<Account> account = accountStore.lookup(user);
+
+            account.value.channels.forEach(e -> {
+                final String alias = e.first;
+                String role = e.second;
+                final Stored<Channel> ch = e.third;
+                if(alias.equals(channel.value.name)){
+                    System.err.println("changing role from : "+role+" to "+new_role);
+                    role = new_role;
+                }
+
+                channels.accept(
+                    new Triple<String,String,Stored<Channel>>(
+                        alias,role.toLowerCase(),ch));
+        
             });
+            //Finished
+            System.err.println("channelsTest: ");
+            List<Triple<String,String,Stored<Channel>>> chs = channels.getList();
+            
+            Account new_account = new Account(account.value.user,chs,account.value.hashed);
+            Stored<Account> result = accountStore.update(account,new_account);
+            
             
 
         }catch(Exception e){

@@ -149,7 +149,7 @@ public final class AccountStorage
     }
     return updated;
     }
-   
+    
     @Override
     public synchronized void delete(Stored<Account> account)
        throws UpdatedException,
@@ -247,6 +247,24 @@ public final class AccountStorage
         
         throw new DeletedException();
     }
-    
+
+    /**
+     * Get the account role belonging to a specific channel.
+     */
+    public String lookupRoleInChannel(Stored<Channel> channel, Stored<Account> account)
+      throws SQLException, DeletedException {
+        String sql = "SELECT role FROM AccountChannel WHERE (account = ? AND channel = ?)";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,account.identity.toString());
+        stmt.setString(2,channel.identity.toString());
+        final ResultSet rs = stmt.executeQuery();
+        if(rs.next()) {
+            final String  role = rs.getString("role");
+            return role;
+        }
+        throw new DeletedException();
+    }
 } 
+
+
  

@@ -168,13 +168,13 @@ public class Handler extends AbstractHandler
                         channel = inchat.postMessage(account,channel,message).get();
                     }
                     
-                    if(request.getParameter("deletemessage") != null && checkToken(request,session,"deletemessage")) {
+                    if(request.getParameter("deletemessage") != null) {
                         UUID messageId = 
                             UUID.fromString(Maybe.just(request.getParameter("message")).get());
                         Stored<Channel.Event> message = inchat.getEvent(messageId).get();
                         channel = inchat.deleteEvent(channel, message);
                     }
-                    if(request.getParameter("editmessage") != null && checkToken(request,session,"editmessage")) {
+                    if(request.getParameter("editmessage") != null) {
                         String message = (new Maybe<String>
                             (request.getParameter("content"))).get();
                         UUID messageId = 
@@ -499,6 +499,7 @@ public class Handler extends AbstractHandler
         out.println("<option value=\"observer\">Observer</option>");
         out.println("<option value=\"banned\">Banned</option>");
 
+        out.println("<input type=\"hidden\" name=\"setpermission\" value=\""+key+"\">");
         out.println("<input type=\"submit\" name=\"setpermission\" value=\"Set!\">");
         out.println("</select>");
         out.println("</form>");

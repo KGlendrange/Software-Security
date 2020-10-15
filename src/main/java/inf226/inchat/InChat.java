@@ -129,7 +129,10 @@ public class InChat {
         try {
             Stored<Channel> channel
                 = channelStore.save(new Channel(name,List.empty()));
-            return joinChannel(account, channel.identity);
+            
+            Maybe<Stored<Channel>> result = joinChannel(account, channel.identity);
+            setRole(account,channel,account.value.user.value.name,"owner");
+            return result;
         } catch (SQLException e) {
             System.err.println("When trying to create channel " + name +":\n" + e);
         }
@@ -147,7 +150,7 @@ public class InChat {
         
             Stored<Channel> channel = channelStore.get(channelID);
 
-            String[] allowed = new String[4];
+            String[] allowed = new String[5];
             allowed[0] = "owner";
             allowed[1] = "moderator";
             allowed[2] = "participant";
@@ -186,7 +189,7 @@ public class InChat {
     public Maybe<Stored<Channel>> postMessage(Stored<Account> account,
                                               Stored<Channel> channel,
                                               String message) {
-        String[] allowed = new String[3];
+        String[] allowed = new String[5];
         allowed[0] = "owner";
         allowed[1] = "moderator";
         allowed[3] = "participant";
@@ -245,6 +248,15 @@ public class InChat {
         
             //Also check if account.value.channels which are made up of a triple (alias,role,channel) has an alias same as the channel
             //as well as if allowed.contains role
+            account.value.channels.forEach(e -> {
+                //match to channel
+                if(e.first.equals(channel.value.name)){
+                    //if your role in this channel is any of the ones in the allowed array
+                    if(Arrays.asList(allowed).contains(e.second)){
+                        final boolean flag = true;
+                    }
+                }
+            });
         }
        
 
@@ -253,7 +265,7 @@ public class InChat {
     }
     
     public Stored<Channel> deleteEvent(Stored<Account> account, Stored<Channel> channel, Stored<Channel.Event> event) {
-        String[] allowed = new String[2];
+        String[] allowed = new String[5];
         allowed[0] = "owner";
         allowed[1] = "moderator";
         if(!checkPermission(account, channel, event, allowed)){
@@ -272,7 +284,7 @@ public class InChat {
     public Stored<Channel> editMessage(Stored<Account> account, Stored<Channel> channel,
                                        Stored<Channel.Event> event,
                                        String newMessage) {
-        String[] allowed = new String[2];
+        String[] allowed = new String[5];
         allowed[0] = "owner";
         allowed[1] = "moderator";
         if(!checkPermission(account, channel, event, allowed)){
@@ -290,21 +302,21 @@ public class InChat {
         return channel;
     }
 
-    public Stored<Channel> setRole(Stored<Account> activaterAccount, Stored<Channel> channel, String user, String new_role){
-        String[] allowed = new String[1];
+    public void setRole(Stored<Account> activaterAccount, Stored<Channel> channel, String user, String new_role){
+        String[] allowed = new String[5];
         allowed[0] = "owner";
         
         if(!checkPermission(activaterAccount,channel, null, allowed)){
-            return channel;
+            return;
         }
 
-        System.err.println("In channel: "+channel.value.name+" setting role: "+new_role+" to user: "+user);
 
         try{
             // Get all the channels associated with this account
             final List.Builder<Triple<String,String,Stored<Channel>>> channels = List.builder();
             Stored<Account> account = accountStore.lookup(user);
-            System.err.println("old channel length :"+account.value.channels.length);
+            System.err.println("In channel: "+channel.value.name+" setting role: "+new_role+" to user: "+user);
+
 
             account.value.channels.forEach(e -> {
                 final String alias = e.first;
@@ -334,16 +346,12 @@ public class InChat {
             result.value.channels.forEach(e->{
                 System.err.println(e.first+"-"+e.second+"-"+e.third);
             });
-
-            return channel;
             
 
         }catch(Exception e){
 
         }
         
-        
-        return channel;
 
         
     }

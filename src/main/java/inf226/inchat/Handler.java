@@ -191,7 +191,7 @@ public class Handler extends AbstractHandler
                             (request.getParameter("role"))).get();
                      
 
-                        channel = inchat.setRole(account,channel,user,role);
+                        inchat.setRole(account,channel,user,role);
 
                         
                        

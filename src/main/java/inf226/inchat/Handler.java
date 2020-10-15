@@ -161,19 +161,20 @@ public class Handler extends AbstractHandler
                 if(request.getMethod().equals("POST")) {
                     // This is a request to post something in the channel.
                     
-                    if(request.getParameter(session.identity.toString()) != null) {
+                    if(request.getParameter("newmessage") != null && checkToken(request,session,"newmessage")) {
+                        
                         String message = (new Maybe<String> (request.getParameter("message"))).get();
                         message = Encode.forHtml(message);
                         channel = inchat.postMessage(account,channel,message).get();
                     }
                     
-                    if(request.getParameter("deletemessage") != null) {
+                    if(request.getParameter("deletemessage") != null && checkToken(request,session,"deletemessage")) {
                         UUID messageId = 
                             UUID.fromString(Maybe.just(request.getParameter("message")).get());
                         Stored<Channel.Event> message = inchat.getEvent(messageId).get();
                         channel = inchat.deleteEvent(channel, message);
                     }
-                    if(request.getParameter("editmessage") != null) {
+                    if(request.getParameter("editmessage") != null && checkToken(request,session,"editmessage")) {
                         String message = (new Maybe<String>
                             (request.getParameter("content"))).get();
                         UUID messageId = 
@@ -181,7 +182,7 @@ public class Handler extends AbstractHandler
                         Stored<Channel.Event> event = inchat.getEvent(messageId).get();
                         channel = inchat.editMessage(channel, event, message);
                     }
-                    if(request.getParameter("setpermission") != null){
+                    if(request.getParameter("setpermission") != null && checkToken(request,session,"setpermission")){
 
                         String user = (new Maybe<String>
                             (request.getParameter("username"))).get();
@@ -225,7 +226,9 @@ public class Handler extends AbstractHandler
                 
                 out.println("<form class=\"login\" action=\"/\" method=\"POST\">"
                   + "<div class=\"name\"><input type=\"text\" name=\"channelname\" placeholder=\"Channel name\"></div>"
-                  + "<div class=\"submit\"><input type=\"submit\" name=\"createchannel\" value=\"Create Channel\"></div>"
+                  + "<div class=\"submit\">"
+                  + "<input type=\"hidden\" name=\"createchannel\" value=\""+session.identity+"\">"
+                  + "<input type=\"submit\" name=\"createchannel\" value=\"Create Channel\"></div>"
                   + "</form>");
                 out.println("</body>");
                 out.println("</html>");
@@ -340,7 +343,7 @@ public class Handler extends AbstractHandler
                 /*channel = inchat.subscribeChannel()*/
             }
 
-            if(request.getParameter("createchannel") != null) {
+            if(request.getParameter("createchannel") != null && checkToken(request,session,"createchannel")) {
                 // Try to create a new channel
                 System.err.println("Channel creation.");
                 try {
@@ -404,6 +407,24 @@ public class Handler extends AbstractHandler
     }
   }
 
+    private boolean checkToken(HttpServletRequest request,Stored<Session> session, String name){
+        
+
+        try{
+            String[] values = request.getParameterValues(name);
+            String token = values[0].toString();
+            
+            if(token.equals(session.identity.toString())){
+                System.err.println("token was correct");
+                return true;
+            }else{
+                return false;
+            }
+        }catch(Exception e){
+            System.err.println("failed in getParameterValues: "+e);
+            return false;
+        }
+    }
 
     private void printStandardHead(PrintWriter out, String title) {
         out.println("<head>");
@@ -452,7 +473,7 @@ public class Handler extends AbstractHandler
         
         out.println("<form class=\"entry\" action=\"/channel/" + alias + "\" method=\"post\">");
         out.println("  <div class=\"user\">You</div>");
-        out.println("  <input type=\"hidden\" name=\""+key+"\" value=\"Send\">");
+        out.println("  <input type=\"hidden\" name=\""+"newmessage"+"\" value=\""+key+"\">");
         out.println("  <textarea id=\"messageInput\" class=\"messagebox\" placeholder=\"Post a message in this channel!\" name=\"message\"></textarea>");
         out.println("  <div class=\"controls\"><input style=\"float: right;\" type=\"submit\" name=\"send\" value=\"Send\"></div>");
         out.println("</form>");

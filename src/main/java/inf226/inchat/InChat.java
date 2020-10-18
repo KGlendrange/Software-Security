@@ -61,7 +61,6 @@ public class InChat {
                 sessionStore.save(new Session(account, Instant.now().plusSeconds(60*60*24)));
                 return Maybe.just(session); 
             }else{
-                System.err.println("Password was not correct");
             }
         } catch (SQLException e) {
         } catch (DeletedException e) {
@@ -152,7 +151,6 @@ public class InChat {
 
             try{
                 String role = accountStore.lookupRoleInChannel(channel, account);
-                System.err.println("role: "+ role);
                 if(role.equals("banned")) return Maybe.nothing();
     
             }catch(Exception e){
@@ -245,13 +243,11 @@ public class InChat {
     public boolean checkPermission(Stored<Account> account, Stored<Channel> channel, Stored<Channel.Event> event, String[] allowed){
         System.err.println("allowed: "+Arrays.toString(allowed));
         if(event!= null){
-            System.err.println("event is not null");
             if(event.value.sender.equals(account.value.user.value.name)) return true;
             
         }
         try{
             String role = accountStore.lookupRoleInChannel(channel, account);
-            System.err.println("role: "+ role);
             if(Arrays.asList(allowed).contains(role)) return true;
 
         }catch(Exception e){
@@ -310,7 +306,6 @@ public class InChat {
                 String role = e.second;
                 final Stored<Channel> ch = e.third;
                 if(alias.equals(channel.value.name)){
-                    System.err.println("changing role from : "+role+" to "+new_role);
                     role = new_role;
                 }
 
@@ -320,11 +315,10 @@ public class InChat {
         
             });
             //Finished
-            System.err.println("channelsTest: ");
             List<Triple<String,String,Stored<Channel>>> chs = channels.getList();
             
             Account new_account = new Account(account.value.user,chs,account.value.hashed);
-            Stored<Account> result = accountStore.update(account,new_account);
+            accountStore.update(account,new_account);
             
             
 
@@ -335,35 +329,31 @@ public class InChat {
 
     public Stored<Channel> setRole(Stored<Account> activaterAccount, UUID channelid, String user, String new_role) throws SQLException, DeletedException {
         Stored<Channel> channel = channelStore.get(channelid);
-        System.err.println(channel.value.count + "after");
         String[] allowed = new String[5];
         allowed[0] = "owner";
         System.err.println(accountStore.lookupRoleInChannel(channel,activaterAccount));
         if(!checkPermission(activaterAccount,channel, null, allowed)){
             return channel;
         }
-
-        System.err.println("trying to change role" + new_role);
+        //just incase it wasnt already saved as lowercase
         new_role.toLowerCase();
         Stored<Channel> tempChannel = channel;
         try{
             // Get all the channels associated with this account
             final List.Builder<Triple<String,String,Stored<Channel>>> channels = List.builder();
             Stored<Account> account = accountStore.lookup(user);
-            System.err.println(accountStore.lookupRoleInChannel(channel, account) + "this is what b are");
-            if (accountStore.lookupRoleInChannel(channel, account).equals("owner")) {
-                System.err.println("chekcing if owner "+ channel.value.count);
+            String old_role = accountStore.lookupRoleInChannel(channel, account);
+            //if we are changing from owner to some other role, we decrease count by 1
+            if (old_role.equals("owner")) {
                 if (channel.value.count <= 1) return channel;
                 else if(!new_role.equals("owner")) {
                     tempChannel.value.count -= 1;
-                    System.err.println(channel.value.count + " this is the updated count");
                 }
             }
+            //if we are changing to the owner role from some other role, we increase count by 1
             else if(new_role.equals("owner")) {
                 tempChannel.value.count += 1;
-                System.err.println(channel.value.count + " this is the updated count");
             }
-            System.err.println("forbi if");
             account.value.channels.forEach(e -> {
                 final String alias = e.first;
                 String role = e.second;
@@ -379,14 +369,11 @@ public class InChat {
 
             });
             //Finished
-            System.err.println("channelsTest: ");
             List<Triple<String,String,Stored<Channel>>> chs = channels.getList();
 
             Account new_account = new Account(account.value.user,chs,account.value.hashed);
             Stored<Account> result = accountStore.update(account,new_account);
-            System.err.println(channel.value.count + "count in channel");
             tempChannel = channelStore.update(channel, tempChannel.value);
-            System.err.println(tempChannel.value.count + "count in temp");
             return  tempChannel;
 
         }catch(Exception e){

@@ -147,6 +147,9 @@ correct protection flags on the session cookie.*
 #### Notes – task 0
 
 Here you write your notes about how this task was performed.
+Task 0:
+Imported SCrypt from POM.xml. Its a key derivation function that takes in passphrase, CPU cost(N), blocksize(r), paralellization(p). With these parameters we can intentionally make the password time or memory dependant, not enough to where normal users would notice it, but enough to where malicious attackers would have to spend a lot of resources. 
+
 
 ### Task 1 – SQL injection (4 points)
 
@@ -158,6 +161,9 @@ it wide open to injection attacks.
 #### Notes – task 1
 
 Here you write your notes about how this task was performed.
+Task 1:
+Remade all SQL queries into safe PreparedStatements, even where it doesn't take user input because it doesnt hurt. 
+
 
 ### Task 2 – Cross-site scripting (4 points)
 
@@ -173,6 +179,9 @@ take a look at the [OWASP XSS prevention cheat sheet](https://cheatsheetseries.o
 #### Notes – task 2
 
 Here you write your notes about how this task was performed.
+Task 2:
+Escaping malicious characters such as replacing the character < with &lt, which still displays it as a <. This prevents the user from injecting code.
+
 
 
 ### Task 3 – Cross-site request forgery (1 point)
@@ -189,6 +198,9 @@ the vulnerable forms.*
 #### Notes – task 3
 
 Here you write your notes about how this task was performed.
+Task 3: 
+Made CSRF tokens from the unguessable session ids, forms that doesn't require any other id like eventid has to pass a CSRF token check!
+
 
 
 ### Task 4 – Access control (5 points)
@@ -230,10 +242,13 @@ Also, make sure that your system satisfies the invariant:
 #### Notes – task 4
 
 Here you write your notes about how this task was performed.
+Task 4:
+Created a column in the AccountChannel database from accountStorage that saves Roles. Made a setRole function only accessable to "owner" roles, that takes can set any user to any role.
+Restricted other functions like Edit,Post,Delete,and Join depending on what role you have. 
 
 
 ### Task ω – Other security holes (2 points)
-
+ 
 There are more security issues in this web application.
 Improve the security of the application to the best of your
 ability.
@@ -246,4 +261,9 @@ can ignore issues related HTTPS.
 
 Here you write your notes about how this task was performed.
 
+- Made sure the password matches up with the repeat-password in Registration. 
+- HTML tags missing Required
+- SCrypt is used for a lot of Cryptocurrencies and has attracted FPGA and ASIC mining solutions that could be repurposed for password cracking!
+- It could be smart to purge the local password storage after we use it
+- Password could check against a dictionary to insure that the user doesnt just use some commonly used word that would be easily cracked with a dictionary-attack. Aswell as checking it against repetitive or sequential characters. 
 

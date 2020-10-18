@@ -15,6 +15,9 @@ public final class Password {
     }
     
     public static Password create(String password) {
+        if(password.length() < 8){
+            throw new IllegalArgumentException();
+        }
         //Scrypt on the password, with N = 16384, r = 8, p = 1
         String hashed = SCryptUtil.scrypt(password,16384,8,1);
         return new Password(hashed);

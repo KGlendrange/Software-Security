@@ -72,10 +72,19 @@ public class InChat {
      * Register a new user.
      */
     public Maybe<Stored<Session>> register(String username, String password) {
+        //User now stores the SCrypt hash of their password
+        System.err.println("Trying to register user: \"" + username
+        + "\" with password \"" + password + "\" inside inchat register()");
+        try{
+            if(!userStore.lookup(username).equals(Maybe.nothing())){
+                System.err.println("Username already taken");
+                return Maybe.nothing();
+            }
+    
+        }catch(Exception e){
+            System.err.println("error : "+e);
+        }
         try {
-            //User now stores the SCrypt hash of their password
-            System.err.println("Trying to register user: \"" + username
-            + "\" with password \"" + password + "\" inside inchat register()");
             final User notStoredUser = User.create(username);
             System.err.println("Made the user : "+ notStoredUser.toString());
             final Stored<User> user =
@@ -124,7 +133,6 @@ public class InChat {
      */
     public Maybe<Stored<Channel>> createChannel(Stored<Account> account,
                                                 String name) {
-        name = Encode.forHtml(name);
         try {
             Stored<Channel> channel
                 = channelStore.save(new Channel(name,List.empty(), 1));
@@ -331,11 +339,11 @@ public class InChat {
         Stored<Channel> channel = channelStore.get(channelid);
         String[] allowed = new String[5];
         allowed[0] = "owner";
-        System.err.println(accountStore.lookupRoleInChannel(channel,activaterAccount));
         if(!checkPermission(activaterAccount,channel, null, allowed)){
             return channel;
         }
-        //just incase it wasnt already saved as lowercase
+
+        
         new_role.toLowerCase();
         Stored<Channel> tempChannel = channel;
         try{

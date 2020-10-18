@@ -99,11 +99,20 @@ public class Handler extends AbstractHandler
                 (request.getParameter("username"))).get();
             String password = (new Maybe<String>
                 (request.getParameter("password"))).get();
-            System.err.println("Registering user: \"" + username
+
+            String password_repeat = (new Maybe<String>
+                (request.getParameter("password_repeat"))).get();
+            if(password.equals(password_repeat)){
+                System.err.println("Registering user: \"" + username
                              + "\" with password \"" + password + "\"");
             
                               
-            inchat.register(username,password).forEach(sessionBuilder);
+                inchat.register(username,password).forEach(sessionBuilder);
+            }else{
+                System.err.println("Passwords did not match");
+            }
+            
+            
         } catch (Maybe.NothingException e) {
             // Not enough data suppied for login
             System.err.println("Broken usage of register");
@@ -142,17 +151,18 @@ public class Handler extends AbstractHandler
         // We set the session cookie to keep the user logged in:
 
         Cookie sessCookie = new Cookie("session",session.identity.toString());
-        //Setting the cookie to secure doesnt do anything unless using HTTPS which we cant
-        /*  sessCookie.setSecure(true); 
-            
-        */
+        //Setting flag to cookie, commented out because it doesnt do anything unless we have HTTPS certificate
+        //sessCookie.setSecure(true);
+        //sessCookie.setHHttpOnly(true);
+        
         response.addCookie(sessCookie);
         final PrintWriter out = response.getWriter();
         // Handle a logged in request.
         try {
             if(target.startsWith("/channel/")) {
                 final String alias
-                    = target.substring(("/channel/").length());
+                    = Encode.forHtml(target.substring(("/channel/").length()));
+                
                 // Resolve channel within the current session
                 Stored<Channel> channel =
                     Util.lookup(account.value.channels,alias).get();
@@ -181,6 +191,7 @@ public class Handler extends AbstractHandler
                     if(request.getParameter("editmessage") != null) {
                         String message = (new Maybe<String>
                             (request.getParameter("content"))).get();
+                        message = Encode.forHtml(message);
                         UUID messageId = 
                             UUID.fromString(Maybe.just(request.getParameter("message")).get());
                         Stored<Channel.Event> event = inchat.getEvent(messageId).get();
@@ -193,10 +204,8 @@ public class Handler extends AbstractHandler
                             
                         String role = (new Maybe<String>
                             (request.getParameter("role"))).get();
-
-
+                        
                         channel = inchat.setRole(account,channel.identity,user,role);
-                        System.err.println(channel.value.count + "channel count in handler");
 
                         
                        
@@ -354,6 +363,8 @@ public class Handler extends AbstractHandler
                 try {
                     String channelName = (new Maybe<String>
                         (request.getParameter("channelname"))).get();
+                    
+                    channelName = Encode.forHtml(channelName);
                                         
                     Stored<Channel> channel 
                         = inchat.createChannel(account,channelName).get();
@@ -424,7 +435,6 @@ public class Handler extends AbstractHandler
             String token = values[0].toString();
             
             if(token.equals(session.identity.toString())){
-                System.err.println("token was correct");
                 return true;
             }else{
                 return false;

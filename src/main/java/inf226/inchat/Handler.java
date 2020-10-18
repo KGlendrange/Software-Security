@@ -13,6 +13,7 @@ import java.util.TreeMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.lang.IllegalArgumentException;
 import java.time.format.DateTimeFormatter;
@@ -47,11 +48,10 @@ public class Handler extends AbstractHandler
   private final File script = new File("script.js");
 
   private static InChat inchat;
-  
+
   private final DateTimeFormatter formatter =
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm (z)")
                                  .withZone( ZoneId.systemDefault() );
-
   
   /**
    * This is the entry point for HTTP requests.
@@ -122,7 +122,7 @@ public class Handler extends AbstractHandler
             // Not enough data suppied for login
             System.err.println("Broken usage of login");
         }
-    
+
     } else {
         // Final option is to restore a session from a cookie
         final Maybe<Cookie> sessionCookie
@@ -147,19 +147,23 @@ public class Handler extends AbstractHandler
             
         */
         response.addCookie(sessCookie);
-        
         final PrintWriter out = response.getWriter();
         // Handle a logged in request.
         try {
             if(target.startsWith("/channel/")) {
                 final String alias
                     = target.substring(("/channel/").length());
-                
                 // Resolve channel within the current session
                 Stored<Channel> channel =
                     Util.lookup(account.value.channels,alias).get();
+                String[] Allowed = new String[5];
+                Allowed[0]= "owner";
+                Allowed[1] = "observer";
+                Allowed[2] = "moderator";
+                Allowed[3] = "participant";
+                if (!inchat.checkPermission(account, channel, null, Allowed)) return;
                 if(request.getMethod().equals("POST")) {
-                    // This is a request to post something in the channel.
+                    // This is a request to  post something in the channel.
                     
                     if(request.getParameter("newmessage") != null && checkToken(request,session,"newmessage")) {
                         
@@ -189,9 +193,10 @@ public class Handler extends AbstractHandler
                             
                         String role = (new Maybe<String>
                             (request.getParameter("role"))).get();
-                     
 
-                        inchat.setRole(account,channel,user,role);
+
+                        channel = inchat.setRole(account,channel.identity,user,role);
+                        System.err.println(channel.value.count + "channel count in handler");
 
                         
                        
@@ -200,7 +205,7 @@ public class Handler extends AbstractHandler
                     
                     
                 }
-                
+
                 out.println("<!DOCTYPE html>");
                 out.println("<html lang=\"en-GB\">");
                 printStandardHead(out, "inChat: " + alias);
@@ -389,6 +394,10 @@ public class Handler extends AbstractHandler
             /* Something was not found, we let the handler pass through,
                Jetty will give them a 404. */
             return;
+        } catch (DeletedException e) {
+            e.printStackTrace();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
         }
     } catch (Maybe.NothingException e) {
         // All authentication methods failed
@@ -465,7 +474,6 @@ public class Handler extends AbstractHandler
     private void printChannel(PrintWriter out,
                               Stored<Channel> channel,
                               String alias,String key) {
-        
         out.println("<main id=\"channel\" role=\"main\" class=\"channel\">");
         printChannelEvents(out,channel);
         out.println("<script src=\"/script.js\"></script>");

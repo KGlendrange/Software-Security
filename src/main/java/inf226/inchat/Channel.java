@@ -9,16 +9,17 @@ import inf226.util.Pair;
 public final class Channel {
     public final String name;
     public final List<Stored<Event>> events;
-
+    public int count;
     public List<Pair<Stored<User>,String>> permissionList;
 
-    public Channel(String name, List<Stored<Event>> events) {
+    public Channel(String name, List<Stored<Event>> events, int count) {
         this.name=name;
-        this.events=events;        
+        this.events=events;
+        this.count=count;
     }
     
     public Channel postEvent(Stored<Event> event) {
-        return new Channel(name, List.cons(event,events));
+        return new Channel(name, List.cons(event,events), count);
     }
  
 

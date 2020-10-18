@@ -128,7 +128,7 @@ public class InChat {
         name = Encode.forHtml(name);
         try {
             Stored<Channel> channel
-                = channelStore.save(new Channel(name,List.empty()));
+                = channelStore.save(new Channel(name,List.empty(), 1));
             
             Maybe<Stored<Channel>> result = joinChannel(account, channel.identity);
             setRoleWithoutPermission(account,channel,account.value.user.value.name,"owner");
@@ -333,19 +333,37 @@ public class InChat {
         }
     }
 
-    public void setRole(Stored<Account> activaterAccount, Stored<Channel> channel, String user, String new_role){
+    public Stored<Channel> setRole(Stored<Account> activaterAccount, UUID channelid, String user, String new_role) throws SQLException, DeletedException {
+        Stored<Channel> channel = channelStore.get(channelid);
+        System.err.println(channel.value.count + "after");
         String[] allowed = new String[5];
         allowed[0] = "owner";
-        
+        System.err.println(accountStore.lookupRoleInChannel(channel,activaterAccount));
         if(!checkPermission(activaterAccount,channel, null, allowed)){
-            return;
+            return channel;
         }
 
+        System.err.println("trying to change role" + new_role);
+        new_role.toLowerCase();
+        Stored<Channel> tempChannel = channel;
         try{
             // Get all the channels associated with this account
             final List.Builder<Triple<String,String,Stored<Channel>>> channels = List.builder();
             Stored<Account> account = accountStore.lookup(user);
-
+            System.err.println(accountStore.lookupRoleInChannel(channel, account) + "this is what b are");
+            if (accountStore.lookupRoleInChannel(channel, account).equals("owner")) {
+                System.err.println("chekcing if owner "+ channel.value.count);
+                if (channel.value.count <= 1) return channel;
+                else if(!new_role.equals("owner")) {
+                    tempChannel.value.count -= 1;
+                    System.err.println(channel.value.count + " this is the updated count");
+                }
+            }
+            else if(new_role.equals("owner")) {
+                tempChannel.value.count += 1;
+                System.err.println(channel.value.count + " this is the updated count");
+            }
+            System.err.println("forbi if");
             account.value.channels.forEach(e -> {
                 final String alias = e.first;
                 String role = e.second;
@@ -358,19 +376,21 @@ public class InChat {
                 channels.accept(
                     new Triple<String,String,Stored<Channel>>(
                         alias,role.toLowerCase(),ch));
-        
+
             });
             //Finished
             System.err.println("channelsTest: ");
             List<Triple<String,String,Stored<Channel>>> chs = channels.getList();
-            
+
             Account new_account = new Account(account.value.user,chs,account.value.hashed);
             Stored<Account> result = accountStore.update(account,new_account);
-            
-            
+            System.err.println(channel.value.count + "count in channel");
+            tempChannel = channelStore.update(channel, tempChannel.value);
+            System.err.println(tempChannel.value.count + "count in temp");
+            return  tempChannel;
 
         }catch(Exception e){
-
+            return channel;
         }
         
 

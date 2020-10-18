@@ -247,7 +247,17 @@ public final class AccountStorage
         
         throw new DeletedException();
     }
+    public int getOwnerCount(Stored<Channel> channel, Stored<Account> account) throws SQLException, DeletedException {
+        System.err.println("amount of owners");
+        String sql = "SELECT COUNT('role') FROM AccountChannel WHERE (account = ? AND channel = ?) AND role= 'owner'";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1,account.identity.toString());
+        stmt.setString(2,channel.identity.toString());
+        final int rs = stmt.executeQuery().getInt(1);
+        System.err.println(rs + "amount of owners");
+        return rs;
 
+    }
     /**
      * Get the account role belonging to a specific channel.
      */

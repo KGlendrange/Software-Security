@@ -34,7 +34,7 @@ public final class ChannelStorage
         this.eventStore = eventStore;
         
         connection.createStatement()
-                .executeUpdate("CREATE TABLE IF NOT EXISTS Channel (id TEXT PRIMARY KEY, version TEXT, name TEXT)");
+                .executeUpdate("CREATE TABLE IF NOT EXISTS Channel (id TEXT PRIMARY KEY, version TEXT, name TEXT, count TEXT)");
         connection.createStatement()
                 .executeUpdate("CREATE TABLE IF NOT EXISTS ChannelEvent (channel TEXT, event TEXT, ordinal INTEGER, PRIMARY KEY(channel,event), FOREIGN KEY(channel) REFERENCES Channel(id) ON DELETE CASCADE, FOREIGN KEY(event) REFERENCES Event(id) ON DELETE CASCADE)");
 
@@ -43,19 +43,19 @@ public final class ChannelStorage
     @Override
     public Stored<Channel> save(Channel channel)
       throws SQLException {
-        
+        System.err.println("channelStore.save");
         final Stored<Channel> stored = new Stored<Channel>(channel);
         /* String sql =  "INSERT INTO Channel VALUES('" + stored.identity + "','"
                                                   + stored.version  + "','"
                                                   + channel.name  + "')"; */
-        String sql = "INSERT INTO Channel VALUES (?,?,?)";
+        String sql = "INSERT INTO Channel VALUES (?,?,?,?)";
         
         /* connection.createStatement().executeUpdate(sql); */
         PreparedStatement stmt = connection.prepareStatement(sql);
         stmt.setString(1,stored.identity.toString());
         stmt.setString(2,stored.version.toString());
         stmt.setString(3,channel.name);
-
+        stmt.setInt(4, channel.count);
         stmt.executeUpdate();
         
         // Write the list of events
@@ -99,13 +99,14 @@ public final class ChannelStorage
                                 + new_channel.name
                                 + "') WHERE id='"+ updated.identity + "'"; */
 
-            String sql = "UPDATE Channel SET (version,name) = (?,?) WHERE id = ?";
+            String sql = "UPDATE Channel SET (version,name,count) = (?,?,?) WHERE id = ?";
             
             /* connection.createStatement().executeUpdate(sql); */
             PreparedStatement stmt = connection.prepareStatement(sql);
             stmt.setString(1,updated.version.toString());
             stmt.setString(2,new_channel.name);
-            stmt.setString(3,updated.identity.toString());
+            stmt.setString(4,updated.identity.toString());
+            stmt.setInt(3, new_channel.count);
             stmt.executeUpdate();
 
             
@@ -168,7 +169,7 @@ public final class ChannelStorage
              SQLException {
 
         /* final String channelsql = "SELECT version,name FROM Channel WHERE id = '" + id.toString() + "'"; */
-        final String channelsql = "SELECT version, name FROM Channel WHERE id = ?";
+        final String channelsql = "SELECT version, name, count FROM Channel WHERE id = ?";
 
         /* final String eventsql = "SELECT event,ordinal FROM ChannelEvent WHERE channel = '" + id.toString() + "' ORDER BY ordinal DESC"; */
         final String eventsql = "SELECT event,ordinal FROM ChannelEvent WHERE channel = ? ORDER BY ordinal DESC";
@@ -195,7 +196,7 @@ public final class ChannelStorage
                 UUID.fromString(channelResult.getString("version"));
             final String name =
                 channelResult.getString("name");
-
+            final int count = channelResult.getInt("count");
             // Get all the events associated with this channel
             final List.Builder<Stored<Channel.Event>> events = List.builder();
 
@@ -204,7 +205,7 @@ public final class ChannelStorage
                 final UUID eventId = UUID.fromString(eventResult.getString("event"));
                 events.accept(eventStore.get(eventId));
             }
-            return (new Stored<Channel>(new Channel(name,events.getList()),id,version));
+            return (new Stored<Channel>(new Channel(name,events.getList(),count),id,version));
         
             
         } else {

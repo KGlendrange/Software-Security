@@ -1,5 +1,9 @@
 # INCHAT – The INsecure CHAT application
 
+https://www.uib.no/emne/INF226 
+- Secured a website from malicious attacks
+- Created a rapport reviewing another groups attempt at securing the website
+
 Welcome to this second mandatory assignment of INF226.
 In this assignment you will be improving the security
 of a program called inChat – a very simple chat application,
